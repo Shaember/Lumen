@@ -1,0 +1,16 @@
+{
+  "name": "Lumen",
+  "short_name": "Lumen",
+  "description": "Personal photo backup and viewing",
+  "start_url": "/photos",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

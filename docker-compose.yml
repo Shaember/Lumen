@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - web
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - LUMEN_DATA_DIR=/data
+      - LUMEN_DB_PATH=/data/lumen.db
+      - LUMEN_JWT_SECRET=${LUMEN_JWT_SECRET:-change-me-in-production}
+      - LUMEN_PORT=8080
+      - LUMEN_CORS_ORIGIN=https://localhost
+    volumes:
+      - photos_data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    environment:
+      - ORIGIN=https://localhost
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  photos_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,25 @@
+:443 {
+	tls internal
+
+	# API proxy
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else goes to web frontend
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+:80 {
+	# API proxy
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else goes to web frontend
+	handle {
+		reverse_proxy web:3000
+	}
+}
