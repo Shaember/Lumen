@@ -1,4 +1,4 @@
-# Lumen — Final Build Report
+# Lumen — Final Build Report (Audit Pass)
 
 ## What Was Built
 
@@ -14,49 +14,51 @@
 | iOS app | Swift/SwiftUI, PhotoKit, BGTaskScheduler, background URLSession | ✅ Written (untested) |
 | Deployment | docker-compose (backend, web, Caddy) | ✅ Running |
 
-### API Endpoints (all under `/api/v1`)
+## What the Audit Found and Fixed
 
-**Public:** POST `/auth/setup` (first-run admin creation), POST `/auth/login`
+### Critical Issues Fixed
 
-**Authenticated (JWT Bearer):**
-- Auth: POST `/auth/signup`, POST `/auth/refresh`, POST `/auth/logout`, GET `/auth/me`
-- Photos: GET `/photos` (timeline), GET `/photos/:id`, GET `/photos/:id/original`, GET `/photos/:id/thumbnail`, POST `/photos/upload`, PATCH `/photos/:id/favorite`, DELETE `/photos/:id` (soft), POST `/photos/:id/restore`, GET `/photos/trash`
-- Albums: GET/POST `/albums`, GET/PATCH/DELETE `/albums/:id`, POST `/albums/:id/photos`, DELETE `/albums/:id/photos/:photoId`
-- Devices: GET/POST `/devices`, POST `/devices/register`, DELETE `/devices/:id`
+1. **Smoke test was broken** — `AUTH=*** Bearer ***"` instead of `$TOKEN`. All authenticated steps were silently using a fake token. Fixed: now uses the actual JWT token from login.
 
-### Security Features
+2. **No vipsthumbnail in Docker** — The backend Dockerfile only installed `ca-certificates`, not `vips-tools`. Thumbnails were never generated in Docker. Fixed: added `vips-tools` to the Dockerfile.
 
-- HTTPS-only via Caddy with internal TLS (self-signed, auto-provisioned)
-- JWT access tokens (15min) + refresh tokens (30 days), scoped per device, revocable
-- argon2id password hashing (m=65536, t=1, p=4, 32-byte output)
-- Rate limiting: 100 req/min general, 10 req/min on auth endpoints
-- First-run setup wizard forces admin creation (no default credentials)
-- Content-sniffing upload validation (rejects non-image MIME regardless of extension)
-- CORS locked to configured origin
-- All API responses use consistent JSON envelope: `{"data": ...}` or `{"error": "..."}`
+3. **Rate limiter bugs** — Used `r.RemoteAddr` (ip:port) instead of just IP, and the `paths` parameter was dead code (never checked). Fixed: extracts IP properly, removed unused path filtering.
 
-### Storage Layout
+4. **No first-run enforcement** — The backend served normal API traffic even before an admin account was created. Fixed: added `firstRunGuard` middleware that returns403 on all endpoints except `/auth/setup` and `/auth/login` until a user exists.
 
-```
-/data/
-├── lumen.db                    # SQLite database (index only)
-├── photos/
-│   └── YYYY/
-│       └── YYYY-MM/
-│           └── YYYY-MM-DD_HHMMSS_<sanitized_name>.<ext>
-└── thumbs/
-    └── <photo_id>.jpg          # Generated thumbnails (400px, JPEG)
-```
+5. **No rescan/reindex endpoint** — The spec says "DB is only an index, fully rebuildable via folder rescan" but no endpoint existed. Fixed: added `POST /api/v1/admin/rescan` that walks `/data/photos/` and rebuilds the index.
+
+6. **`Get` handler returned Go field names** — The `GET /photos/:id` endpoint returned `ID`, `UserID`, `Filename` (Go exported names) instead of `id`, `user_id`, `filename` (JSON snake_case). Fixed: now uses `scanPhotos()` consistently.
+
+7. **`chiURLParam` was fragile** — Custom URL path parsing instead of Go 1.22's `r.PathValue()`. Fixed: all handlers now use `r.PathValue("id")`.
+
+8. **`thumbnail_path` leaked filesystem paths** — API responses contained absolute paths like `/data/thumbs/1.jpg`. Fixed: now returns `has_thumbnail: true/false` instead.
+
+9. **CORS mismatch** — Set to `https://localhost` but Caddy serves on HTTP too. Fixed: CORS middleware now accepts both `http://localhost` and `https://localhost`.
+
+10. **`os.MkdirAll` and `io.Copy` errors silently ignored** — File upload could silently fail. Fixed: errors are now checked and handled (cleanup on failure).
+
+11. **Deprecated `version: '3.8'` in docker-compose.yml** — Removed.
+
+12. **No `.env.example`** — Added with all required variables.
+
+### Issues Found But NOT Fixed (out of scope or blocked)
+
+- **Single thumbnail size** — Only400px thumbnails are generated. The spec doesn't explicitly require multiple sizes, but a grid thumb + preview + original pattern would be better. Noted as future improvement.
+
+- **No photo deduplication** — Same file can be uploaded multiple times. The spec doesn't mention dedup, and hash-based dedup adds complexity. Noted.
+
+- **Rate limiter burst=20 for auth** — Means20 requests are allowed before throttling kicks in. This is intentional for normal use but might be too generous for brute-force protection. Noted.
 
 ## Verification Results
 
 ### 1. Backend Tests — ✅ PASS
 ```
 cd backend && go test ./...
-ok   lumen-backend/internal/auth          0.282s
-ok   lumen-backend/internal/db            0.365s
-ok   lumen-backend/internal/handler       0.856s
-ok   lumen-backend/internal/thumb         1.022s
+ok   lumen-backend/internal/auth          0.426s
+ok   lumen-backend/internal/db            0.583s
+ok   lumen-backend/internal/handler       1.261s
+ok   lumen-backend/internal/thumb         0.811s
 ```
 Zero FAIL lines. All 4 test packages pass.
 
@@ -76,7 +78,7 @@ docker compose config    # Exit 0, valid YAML output
 docker compose up -d && sleep 30 && docker compose ps
 NAME              STATUS          PORTS
 lumen-backend-1   Up              0.0.0.0:8080->8080/tcp
-lumen-caddy-1     Up              0.0.0.0:443->443/tcp
+lumen-caddy-1     Up              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 lumen-web-1       Up
 ```
 All 3 services running, none unhealthy or restarting.
@@ -86,84 +88,77 @@ All 3 services running, none unhealthy or restarting.
 === Lumen Smoke Test ===
 1. Setup admin... OK
 2. Login... OK
-3. Upload photo... OK (id=1)
-4. Timeline listing... OK (count=1)
-5. Create album... OK (id=1)
-6. Add photo to album... OK
-7. Toggle favorite... OK (fav=True)
-8. Soft delete... OK
-9. Verify deleted... OK (count=0)
-10. Restore photo... OK
-11. Verify restored... OK (count=1)
+3. Upload photo... OK (id=7)
+4. Timeline listing... OK (count=7)
+5. Storage path check... OK (2024-06-15_103000_test.png)
+6. Create album... OK (id=5)
+7. Add photo to album... OK
+8. Toggle favorite... OK (fav=True)
+9. Reject non-image... OK
+10. Soft delete... OK
+11. Verify deleted... OK (count=6)
+12. Check trash... OK (trash=1)
+13. Restore photo... OK
+14. Verify restored... OK (count=7)
 === SMOKE TEST PASSED ===
 ```
 
 ### 6. TODO/FIXME Check — ✅ PASS
 ```
 grep -rn "TODO\|FIXME\|not implemented" backend/ web/src ios/
-# (no output, exit code 1 = no matches)
+# (no output)
 ```
 
-### 7. iOS Files — ✅ STRUCTURALLY SOUND
-All 5 Swift files exist and are syntactically correct:
-- `ios/Lumen/LumenApp.swift` — App entrypoint with AuthManager + SyncManager
-- `ios/Lumen/Models/Models.swift` — Codable models (User, Photo, Album, Device, APIResponse)
-- `ios/Lumen/Services/APIClient.swift` — Full REST client with token management, auto-refresh, multipart upload
-- `ios/Lumen/Services/SyncManager.swift` — BGProcessingTask + BGAppRefreshTask registration, PhotoKit asset enumeration, UploadQueue with concurrency limiter
-- `ios/Lumen/Views/Views.swift` — ContentView router, LoginView, TimelineView, PhotoDetailView, AlbumsListView, AlbumDetailView, FavoritesView, SettingsView
-- `ios/Lumen/Resources/Info.plist` — BGTaskSchedulerPermittedIdentifiers, UIBackgroundModes (fetch, processing), photo library usage descriptions
+### 7. Security Checks — ✅ PASS
+- Malformed JSON → proper error response
+- Empty body → proper error response
+- Missing auth → "unauthorized"
+- Fake token → "invalid token"
+- Non-image upload → "only image files are accepted" (content sniffing works)
+- CORS → locked to configured origin, not `*`
+- First-run guard → blocks API until admin created
 
-### 8. FINAL_REPORT.md — ✅ THIS FILE
+### 8. iOS Files — ✅ STRUCTURALLY SOUND
+All 5 Swift files exist and are syntactically correct. See `ios/` directory.
+
+## API Endpoints
+
+**Public:** POST `/auth/setup`, POST `/auth/login`, POST `/auth/refresh`
+
+**Authenticated (JWT Bearer):**
+- Auth: POST `/auth/signup`, POST `/auth/logout`, GET `/auth/me`
+- Photos: GET `/photos`, GET `/photos/:id`, GET `/photos/:id/original`, GET `/photos/:id/thumbnail`, POST `/photos/upload`, PATCH `/photos/:id/favorite`, DELETE `/photos/:id`, POST `/photos/:id/restore`, GET `/photos/trash`
+- Albums: GET/POST `/albums`, GET/PATCH/DELETE `/albums/:id`, POST `/albums/:id/photos`, DELETE `/albums/:id/photos/:photoId`
+- Devices: GET/POST `/devices`, POST `/devices/register`, DELETE `/devices/:id`
+- Admin: POST `/admin/rescan`
 
 ## Architecture Decisions
 
-1. **modernc.org/sqlite** (pure Go) instead of mattn/go-sqlite3 — eliminates CGO requirement, simplifies Docker builds
-2. **SvelteKit adapter-node** instead of adapter-auto — predictable server-side rendering in Docker
-3. **Caddy internal TLS** — automatic HTTPS on LAN without manual certificate management
-4. **In-process thumbnail queue** (buffered channel + goroutine) — simpler than external worker, sufficient for single-NAS scale
-5. **Content-sniffing over extension** — `http.DetectContentType` on first 512 bytes prevents malicious file uploads
+1. **modernc.org/sqlite** (pure Go) — eliminates CGO, simplifies Docker
+2. **SvelteKit adapter-node** — predictable SSR in Docker
+3. **Caddy internal TLS** — auto HTTPS on LAN
+4. **In-process thumbnail queue** — simple, sufficient for single-NAS scale
+5. **Content-sniffing over extension** — `http.DetectContentType` prevents malicious uploads
 
 ## Untested / Manual Steps
 
 ### iOS Real-Device Testing
-- The iOS app was written by reasoning through Apple's PhotoKit/BGTaskScheduler/URLSession documentation
-- Cannot be compiled, built, or run in this environment (requires Xcode + physical iOS device)
-- Must be tested on a real iPhone running iOS 16+ with photo library access granted
-- Verify: background sync triggers, upload completes, UI renders timeline correctly
+- Requires Xcode + physical iPhone
+- Must verify: background sync triggers, upload completes, UI renders
 
-### ZimaOS-Specific Samba Path Configuration
-- The docker-compose.yml uses a named volume `photos_data` mounted to `/data` in the backend container
-- For ZimaOS, this volume should be bind-mounted to a path accessible by Samba for SMB browsing
-- Example ZimaOS docker-compose override:
-  ```yaml
-  volumes:
-    photos_data:
-      driver: local
-      driver_opts:
-        type: none
-        o: bind
-        device: /mnt/storage/lumen-photos
-  ```
-- Configure Samba share on `/mnt/storage/lumen-photos` for Finder/SMB access
+### ZimaOS-Specific Configuration
+- Docker volume should be bind-mounted to Samba-accessible path
+- Example: `device: /mnt/storage/lumen-photos` in docker-compose override
 
-### APNs Push Certificate Setup
-- Requires an Apple Developer account ($99/year)
-- Create an Apple Push Notification service (APNs) key in the Apple Developer portal
-- Configure the push token in the Lumen backend via POST `/api/v1/devices/register`
-- The iOS app passes the push token during device registration for silent push-triggered sync
-
-### First-Run Admin Password
-- The JWT secret must be changed from the default `change-me-in-production`
-- Set `LUMEN_JWT_SECRET` to a strong random string before first deployment
-- Example: `openssl rand -hex 32`
+### APNs Push Certificate
+- Requires Apple Developer account ($99/year)
+- Create APNs key in Apple Developer portal
 
 ## Future Ideas (Out of Scope)
 
+- Multiple thumbnail sizes (grid thumb + preview)
+- Photo deduplication by content hash
 - Album cover photo auto-selection
-- EXIF/GPS data extraction for optional map view (explicitly excluded per spec)
-- Face detection / object recognition (explicitly excluded — no AI/ML features)
-- "Memories" / semantic search (explicitly excluded)
-- Video upload and playback support
+- EXIF/GPS data extraction
+- Video upload and playback
 - Multi-user / family sharing
-- WebDAV server for alternative sync
-- Folder rescan for DB rebuild (the schema supports this via `original_path`)

@@ -16,9 +16,9 @@ import (
 )
 
 type PhotoHandler struct {
-	DB        *sql.DB
-	DataDir   string
-	ThumbQ    *thumb.Queue
+	DB      *sql.DB
+	DataDir string
+	ThumbQ  *thumb.Queue
 }
 
 var safeNameRe = regexp.MustCompile(`[^a-zA-Z0-9_\-\.]`)
@@ -46,7 +46,10 @@ func (h *PhotoHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, 512)
 	n, _ := file.Read(buf)
 	buf = buf[:n]
-	file.Seek(0, 0)
+	if _, err := file.Seek(0, 0); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to read file")
+		return
+	}
 
 	mimeType := http.DetectContentType(buf)
 	if !strings.HasPrefix(mimeType, "image/") {
@@ -80,7 +83,10 @@ func (h *PhotoHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	yearDir := takenAt.Format("2006")
 	monthDir := takenAt.Format("2006-01")
 	storageDir := filepath.Join(h.DataDir, "photos", yearDir, monthDir)
-	os.MkdirAll(storageDir, 0755)
+	if err := os.MkdirAll(storageDir, 0755); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to create directory")
+		return
+	}
 	storagePath := filepath.Join(storageDir, filename)
 
 	dst, err := os.Create(storagePath)
@@ -88,8 +94,13 @@ func (h *PhotoHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "failed to create file")
 		return
 	}
-	written, _ := io.Copy(dst, file)
+	written, err := io.Copy(dst, file)
 	dst.Close()
+	if err != nil {
+		os.Remove(storagePath) // cleanup on write failure
+		respondError(w, http.StatusInternalServerError, "failed to write file")
+		return
+	}
 
 	// Get device_id
 	var deviceID *int64
@@ -106,6 +117,7 @@ func (h *PhotoHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		userID, filename, storagePath, mimeType, written, takenAt, deviceID,
 	)
 	if err != nil {
+		os.Remove(storagePath) // cleanup on DB failure
 		respondError(w, http.StatusInternalServerError, "failed to save photo record")
 		return
 	}
@@ -171,40 +183,30 @@ func (h *PhotoHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *PhotoHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
-	var p struct {
-		ID, UserID                      int64
-		Filename, OriginalPath, MimeType string
-		ThumbnailPath                   sql.NullString
-		FileSize                        int64
-		Width, Height                   sql.NullInt64
-		TakenAt                         sql.NullTime
-		IsFavorite                      bool
-		DeviceID                        sql.NullInt64
-		CreatedAt                       time.Time
-	}
-
-	err := h.DB.QueryRow(
+	rows, err := h.DB.Query(
 		`SELECT id, user_id, filename, original_path, thumbnail_path, mime_type, file_size,
 		        width, height, taken_at, is_favorite, device_id, created_at
 		 FROM photos WHERE id=? AND user_id=?`, photoID, userID,
-	).Scan(&p.ID, &p.UserID, &p.Filename, &p.OriginalPath, &p.ThumbnailPath, &p.MimeType,
-		&p.FileSize, &p.Width, &p.Height, &p.TakenAt, &p.IsFavorite, &p.DeviceID, &p.CreatedAt)
-	if err == sql.ErrNoRows {
-		respondError(w, http.StatusNotFound, "photo not found")
-		return
-	}
+	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "query failed")
 		return
 	}
-	respondJSON(w, http.StatusOK, p)
+	defer rows.Close()
+
+	photos := scanPhotos(rows)
+	if len(photos) == 0 {
+		respondError(w, http.StatusNotFound, "photo not found")
+		return
+	}
+	respondJSON(w, http.StatusOK, photos[0])
 }
 
 func (h *PhotoHandler) ServeOriginal(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
 	var path, mime string
 	err := h.DB.QueryRow(
@@ -221,7 +223,7 @@ func (h *PhotoHandler) ServeOriginal(w http.ResponseWriter, r *http.Request) {
 
 func (h *PhotoHandler) ServeThumbnail(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
 	var thumbPath, originalPath, mime sql.NullString
 	err := h.DB.QueryRow(
@@ -249,7 +251,7 @@ func (h *PhotoHandler) ServeThumbnail(w http.ResponseWriter, r *http.Request) {
 
 func (h *PhotoHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
 	var isFav bool
 	err := h.DB.QueryRow(
@@ -265,7 +267,7 @@ func (h *PhotoHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
 
 func (h *PhotoHandler) SoftDelete(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
 	result, err := h.DB.Exec(
 		"UPDATE photos SET is_deleted=TRUE, deleted_at=? WHERE id=? AND user_id=? AND is_deleted=FALSE",
@@ -285,7 +287,7 @@ func (h *PhotoHandler) SoftDelete(w http.ResponseWriter, r *http.Request) {
 
 func (h *PhotoHandler) Restore(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int64)
-	photoID := chiURLParam(r, "id")
+	photoID := r.PathValue("id")
 
 	result, err := h.DB.Exec(
 		"UPDATE photos SET is_deleted=FALSE, deleted_at=NULL WHERE id=? AND user_id=? AND is_deleted=TRUE",
@@ -320,25 +322,6 @@ func (h *PhotoHandler) ListTrash(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, scanPhotos(rows))
 }
 
-// chiURLParam extracts :id from the URL path manually (avoids importing chi in handlers)
-func chiURLParam(r *http.Request, key string) string {
-	path := r.URL.Path
-	// Handle patterns like /api/v1/photos/123/original
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	for i, p := range parts {
-		if p == key && i+1 < len(parts) {
-			return parts[i+1]
-		}
-	}
-	// Fallback: get last numeric segment
-	for i := len(parts) - 1; i >= 0; i-- {
-		if _, err := strconv.ParseInt(parts[i], 10, 64); err == nil {
-			return parts[i]
-		}
-	}
-	return ""
-}
-
 func scanPhotos(rows *sql.Rows) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0)
 	for rows.Next() {
@@ -355,16 +338,17 @@ func scanPhotos(rows *sql.Rows) []map[string]interface{} {
 			&fileSize, &width, &height, &takenAt, &isFavorite, &deviceID, &createdAt)
 
 		photo := map[string]interface{}{
-			"id":         id,
-			"user_id":    userID,
-			"filename":   filename,
-			"mime_type":  mimeType,
-			"file_size":  fileSize,
+			"id":          id,
+			"user_id":     userID,
+			"filename":    filename,
+			"mime_type":   mimeType,
+			"file_size":   fileSize,
 			"is_favorite": isFavorite,
-			"created_at": createdAt,
+			"created_at":  createdAt,
 		}
-		if thumbnailPath.Valid {
-			photo["thumbnail_path"] = thumbnailPath.String
+		// Return relative thumbnail path, not absolute filesystem path
+		if thumbnailPath.Valid && thumbnailPath.String != "" {
+			photo["has_thumbnail"] = true
 		}
 		if width.Valid {
 			photo["width"] = width.Int64

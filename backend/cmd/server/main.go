@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +22,13 @@ func Chain(middlewares ...func(http.Handler) http.Handler) func(http.Handler) ht
 		}
 		return next
 	}
+}
+
+// hasUsers checks if at least one user exists in the database.
+func hasUsers(database *sql.DB) bool {
+	var count int
+	database.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count > 0
 }
 
 func main() {
@@ -60,10 +68,28 @@ func main() {
 	}
 	albumH := &handler.AlbumHandler{DB: database}
 	deviceH := &handler.DeviceHandler{DB: database}
+	adminH := &handler.AdminHandler{DB: database, DataDir: cfg.DataDir}
 
 	// Rate limiters
 	rlGeneral := middleware.NewRateLimiter(100, 100)
 	rlAuth := middleware.NewRateLimiter(10, 20)
+
+	// First-run guard: block all API until admin exists
+	firstRunCheck := func() bool { return hasUsers(database) }
+	firstRunGuard := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Allow setup and login endpoints always
+			if r.URL.Path == "/api/v1/auth/setup" || r.URL.Path == "/api/v1/auth/login" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if !firstRunCheck() {
+				http.Error(w, `{"error":"no admin account — POST /api/v1/auth/setup first"}`, http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 
 	// Router
 	mux := http.NewServeMux()
@@ -75,6 +101,7 @@ func main() {
 
 	// Protected routes
 	authMw := Chain(
+		firstRunGuard,
 		middleware.AuthMiddleware(cfg.JWTSecret),
 		middleware.RateLimit(rlGeneral),
 	)
@@ -104,6 +131,9 @@ func main() {
 	mux.Handle("GET /api/v1/devices", authMw(http.HandlerFunc(deviceH.List)))
 	mux.Handle("POST /api/v1/devices/register", authMw(http.HandlerFunc(deviceH.Register)))
 	mux.Handle("DELETE /api/v1/devices/{id}", authMw(http.HandlerFunc(deviceH.Delete)))
+
+	// Admin routes
+	mux.Handle("POST /api/v1/admin/rescan", authMw(http.HandlerFunc(adminH.Rescan)))
 
 	// Apply CORS to everything
 	handler := middleware.CORSMiddleware(cfg.CORSOrigin)(mux)

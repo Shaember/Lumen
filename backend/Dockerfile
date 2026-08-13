@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /lumen-server ./cmd/se
 
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates vips-tools
 
 COPY --from=builder /lumen-server /usr/local/bin/lumen-server
 COPY migrations/ /app/migrations/

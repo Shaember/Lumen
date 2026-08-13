@@ -52,7 +52,26 @@ func RequireAdmin(next http.Handler) http.Handler {
 func CORSMiddleware(origin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
+			reqOrigin := r.Header.Get("Origin")
+			if reqOrigin != "" {
+				allowed := false
+				for _, o := range []string{
+					origin,
+					"http://localhost", "https://localhost",
+					"http://localhost:80", "https://localhost:443",
+				} {
+					if reqOrigin == o {
+						w.Header().Set("Access-Control-Allow-Origin", reqOrigin)
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+				}
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -128,14 +147,17 @@ func (rl *RateLimiter) Allow(key string) bool {
 	return true
 }
 
-func RateLimit(rl *RateLimiter, paths ...string) func(http.Handler) http.Handler {
-	pathSet := make(map[string]bool)
-	for _, p := range paths {
-		pathSet[p] = true
+func extractIP(remoteAddr string) string {
+	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
+		return remoteAddr[:idx]
 	}
+	return remoteAddr
+}
+
+func RateLimit(rl *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			key := r.RemoteAddr
+			key := extractIP(r.RemoteAddr)
 			if !rl.Allow(key) {
 				http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
 				return
