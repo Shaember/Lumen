@@ -6,8 +6,10 @@
 	let isSetup = $state(true);
 	let username = $state('');
 	let password = $state('');
+	let serverURL = $state('');
 	let error = $state('');
 	let loading = $state(false);
+	let focusedField = $state('');
 
 	onMount(async () => {
 		tokens.load();
@@ -15,6 +17,7 @@
 			goto('/photos');
 			return;
 		}
+		serverURL = window.location.origin;
 		try {
 			const res = await fetch('/api/v1/auth/login', {
 				method: 'POST',
@@ -51,41 +54,95 @@
 	}
 </script>
 
-<div class="min-h-screen flex items-center justify-center px-4">
+<div class="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4">
 	<div class="w-full max-w-sm">
-		<h1 class="text-2xl font-semibold text-center mb-8">Lumen</h1>
+		<!-- Logo -->
+		<div class="flex flex-col items-center mb-10">
+			<div class="w-20 h-20 rounded-full bg-[var(--accent)] flex items-center justify-center mb-5">
+				<svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+					<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+				</svg>
+			</div>
+			<h1 class="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Lumen</h1>
+			<p class="text-sm text-[var(--text-secondary)] mt-2">Your photos, your server</p>
+		</div>
+
+		<!-- Form -->
 		<form onsubmit={handleSubmit} class="space-y-4">
-			<div>
-				<label for="username" class="block text-sm text-[var(--text-secondary)] mb-1">Username</label>
+			<!-- Server URL (readonly) -->
+			<div class="relative">
+				<div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+					</svg>
+				</div>
 				<input
-					id="username"
+					type="text"
+					value={serverURL}
+					readonly
+					class="w-full pl-11 pr-4 py-3.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent)] transition-colors cursor-not-allowed opacity-70"
+				/>
+			</div>
+
+			<!-- Username -->
+			<div class="relative">
+				<div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+					</svg>
+				</div>
+				<input
 					type="text"
 					bind:value={username}
+					onfocus={() => focusedField = 'username'}
+					onblur={() => focusedField = ''}
 					required
-					class="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+					placeholder="Username"
+					class="w-full pl-11 pr-4 py-3.5 bg-[var(--bg-secondary)] border rounded-xl text-[var(--text-primary)] text-sm focus:outline-none transition-colors placeholder:text-[var(--text-secondary)]/50
+						{focusedField === 'username' ? 'border-[var(--accent)]' : 'border-[var(--border)]'}"
 				/>
 			</div>
-			<div>
-				<label for="password" class="block text-sm text-[var(--text-secondary)] mb-1">Password</label>
+
+			<!-- Password -->
+			<div class="relative">
+				<div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+					</svg>
+				</div>
 				<input
-					id="password"
 					type="password"
 					bind:value={password}
+					onfocus={() => focusedField = 'password'}
+					onblur={() => focusedField = ''}
 					required
 					minlength="8"
-					class="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+					placeholder="Password"
+					class="w-full pl-11 pr-4 py-3.5 bg-[var(--bg-secondary)] border rounded-xl text-[var(--text-primary)] text-sm focus:outline-none transition-colors placeholder:text-[var(--text-secondary)]/50
+						{focusedField === 'password' ? 'border-[var(--accent)]' : 'border-[var(--border)]'}"
 				/>
 			</div>
+
 			{#if error}
-				<p class="text-red-400 text-sm">{error}</p>
+				<div class="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl">
+					<svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+					</svg>
+					<p class="text-red-400 text-sm">{error}</p>
+				</div>
 			{/if}
+
 			<button
 				type="submit"
-				disabled={loading}
-				class="w-full py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg transition-colors disabled:opacity-50"
+				disabled={loading || username.length < 1 || password.length < 8}
+				class="w-full py-3.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
 			>
 				{#if loading}
-					Loading...
+					<div class="flex items-center justify-center gap-2">
+						<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+						<span>Loading...</span>
+					</div>
 				{:else if isSetup}
 					Create Admin Account
 				{:else}
@@ -93,5 +150,10 @@
 				{/if}
 			</button>
 		</form>
+
+		<!-- Footer -->
+		<p class="text-center text-xs text-[var(--text-secondary)] mt-8">
+			Self-hosted photo backup
+		</p>
 	</div>
 </div>

@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { tokens, getMe, logout } from '$lib/api/client';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 	let user: any = $state(null);
@@ -18,6 +19,11 @@
 			}
 		}
 		loading = false;
+		
+		// Redirect to login if not authenticated and not already on login page
+		if (!user && !$page.url.pathname.startsWith('/auth')) {
+			goto('/auth/login');
+		}
 	});
 
 	const navItems = [
@@ -35,14 +41,17 @@
 </script>
 
 {#if loading}
-	<div class="flex items-center justify-center min-h-screen">
-		<div class="text-[var(--text-secondary)]">Loading...</div>
+	<div class="flex items-center justify-center min-h-screen bg-[var(--bg-primary)]">
+		<div class="flex flex-col items-center gap-4">
+			<div class="w-12 h-12 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+			<div class="text-[var(--text-secondary)]">Loading...</div>
+		</div>
 	</div>
 {:else if user}
-	<div class="min-h-screen flex flex-col">
+	<div class="min-h-screen flex flex-col bg-[var(--bg-primary)]">
 		<header class="sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--border)]">
 			<div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-				<a href="/photos" class="text-lg font-semibold tracking-tight">Lumen</a>
+				<a href="/photos" class="text-lg font-semibold tracking-tight text-[var(--text-primary)]">Lumen</a>
 				<nav class="flex items-center gap-1">
 					{#each navItems as item}
 						<a
@@ -68,7 +77,8 @@
 		</main>
 	</div>
 {:else}
-	<a href="/auth/login" class="min-h-screen flex items-center justify-center text-[var(--accent)]">
-		Sign in to Lumen →
-	</a>
+	<!-- Redirecting to login... -->
+	<div class="flex items-center justify-center min-h-screen bg-[var(--bg-primary)]">
+		<div class="w-12 h-12 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+	</div>
 {/if}
