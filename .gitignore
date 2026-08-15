@@ -27,3 +27,7 @@ docker-compose.override.yml
 # Temp
 *.tmp
 *.log
+
+# Xcode
+*.xcuserstate
+xcuserdata/

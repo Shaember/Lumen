@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
-import UserNotifications
+import BackgroundTasks
+import Photos
+import UIKit
 
 // MARK: - Auth Manager
 
@@ -129,7 +131,7 @@ class SyncManager: ObservableObject {
     }
     
     private func syncDeviceRegistration() async {
-        let deviceName = UIDevice.current.name
+        let deviceName = await UIDevice.current.name
         do {
             _ = try await api.registerDevice(name: deviceName, pushToken: nil)
         } catch {
@@ -141,8 +143,8 @@ class SyncManager: ObservableObject {
         // Fetch last sync date from server or use local
         let lastSync = lastSyncDate ?? Date.distantPast
         let assetCollection = PHAssetCollection.fetchAssetCollections(
-            with: .smartAlbumUserLibrary,
-            subtype: .any,
+            with: .smartAlbum,
+            subtype: .smartAlbumUserLibrary,
             options: nil
         ).firstObject
         
@@ -176,19 +178,16 @@ class SyncManager: ObservableObject {
 // MARK: - Upload Queue
 
 class UploadQueue {
-    private let queue = DispatchQueue(label: "com.lumen.upload", qos: .utility, attributes: .concurrent)
-    private let semaphore = DispatchSemaphore(value: 3) // Max 3 concurrent uploads
-    private var operations: [String: Operation] = [:]
+    private let operationQueue = OperationQueue()
     private let api = APIClient.shared
     
+    init() {
+        operationQueue.maxConcurrentOperationCount = 3
+    }
+    
     func enqueue(asset: PHAsset, completion: @escaping (Result<Void, Error>) -> Void) {
-        let id = asset.localIdentifier
-        guard operations[id] == nil else { return }
-        
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
-            self.semaphore.wait()
-            defer { self.semaphore.signal() }
             
             Task {
                 do {
@@ -209,13 +208,11 @@ class UploadQueue {
             }
         }
         
-        operations[id] = operation
-        queue.addOperation(operation)
+        operationQueue.addOperation(operation)
     }
     
     func cancelAll() {
-        operations.values.forEach { $0.cancel() }
-        operations.removeAll()
+        operationQueue.cancelAllOperations()
     }
     
     private func exportAsset(_ asset: PHAsset) async throws -> Data {

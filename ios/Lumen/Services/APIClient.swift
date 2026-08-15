@@ -14,6 +14,8 @@ class APIClient {
     
     private init() {}
     
+    func getAccessToken() -> String? { return accessToken }
+    
     func setTokens(access: String, refresh: String) {
         self.accessToken = access
         self.refreshToken = refresh
@@ -36,7 +38,7 @@ class APIClient {
     // MARK: - Auth
     
     func setup(username: String, password: String) async throws {
-        try await post("/auth/setup", body: ["username": username, "password": password])
+        let _: EmptyResponse = try await post("/auth/setup", body: ["username": username, "password": password])
     }
     
     func login(username: String, password: String) async throws -> User {
@@ -103,11 +105,11 @@ class APIClient {
     }
     
     func deletePhoto(id: Int64) async throws {
-        try await delete("/photos/\(id)")
+        let _: EmptyResponse = try await delete("/photos/\(id)")
     }
     
     func restorePhoto(id: Int64) async throws {
-        try await post("/photos/\(id)/restore", body: [String: String]())
+        let _: EmptyResponse = try await post("/photos/\(id)/restore", body: [String: String]())
     }
     
     func listTrash() async throws -> [Photo] {
@@ -159,8 +161,11 @@ class APIClient {
         return result
     }
     
-    private func delete(_ path: String) async throws {
-        _ = try await request(path, method: "DELETE")
+    private func delete<T: Decodable>(_ path: String) async throws -> T {
+        let data = try await request(path, method: "DELETE")
+        let response = try JSONDecoder().decode(APIResponse<T>.self, from: data)
+        guard let result = response.data else { throw APIError.invalidResponse }
+        return result
     }
     
     private func request(_ path: String, method: String, body: Any? = nil) async throws -> Data {
@@ -192,6 +197,9 @@ class APIClient {
         return data
     }
 }
+
+// MARK: - Empty Response for void API calls
+struct EmptyResponse: Decodable {}
 
 enum APIError: Error, LocalizedError {
     case unauthorized
