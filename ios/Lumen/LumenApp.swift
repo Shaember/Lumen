@@ -13,6 +13,11 @@ struct LumenApp: App {
                 .onAppear {
                     auth.loadTokens()
                     sync.registerBackgroundTasks()
+                    
+                    // Set default server URL if not configured
+                    if UserDefaults.standard.string(forKey: "server_url") == nil {
+                        UserDefaults.standard.set("http://localhost", forKey: "server_url")
+                    }
                 }
         }
     }

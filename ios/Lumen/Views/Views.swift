@@ -2,26 +2,24 @@ import SwiftUI
 import Photos
 
 // MARK: - Color Theme
-
 extension Color {
-    static let lumenBg = Color(red: 0.06, green: 0.07, blue: 0.09)        // #0f1117
-    static let lumenCard = Color(red: 0.10, green: 0.11, blue: 0.15)      // #1a1d27
-    static let lumenAccent = Color(red: 0.39, green: 0.40, blue: 0.94)    // #6366f1
-    static let lumenAccentLight = Color(red: 0.51, green: 0.55, blue: 0.97) // #818cf8
-    static let lumenText = Color(red: 0.91, green: 0.91, blue: 0.93)      // #e8e8ed
-    static let lumenTextSecondary = Color(red: 0.60, green: 0.60, blue: 0.69) // #9a9ab0
-    static let lumenBorder = Color(red: 0.18, green: 0.19, blue: 0.25)    // #2d3040
+    static let lumenBg = Color(red: 0.06, green: 0.07, blue: 0.09)
+    static let lumenCard = Color(red: 0.10, green: 0.11, blue: 0.15)
+    static let lumenAccent = Color(red: 0.39, green: 0.40, blue: 0.94)
+    static let lumenAccentLight = Color(red: 0.51, green: 0.55, blue: 0.97)
+    static let lumenText = Color(red: 0.91, green: 0.91, blue: 0.93)
+    static let lumenTextSecondary = Color(red: 0.60, green: 0.60, blue: 0.69)
+    static let lumenBorder = Color(red: 0.18, green: 0.19, blue: 0.25)
 }
 
-// MARK: - Content View (Root Router)
-
+// MARK: - Content View
 struct ContentView: View {
     @EnvironmentObject var auth: AuthManager
     @EnvironmentObject var sync: SyncManager
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             
             if auth.isLoggedIn {
                 MainTabView()
@@ -38,36 +36,34 @@ struct ContentView: View {
 }
 
 // MARK: - Main Tab View
-
 struct MainTabView: View {
     var body: some View {
         TabView {
             TimelineView()
                 .tabItem {
-                    Label("Timeline", systemImage: "photo.on.rectangle")
+                    Label("Photos", systemImage: "photo.fill")
                 }
             
             AlbumsListView()
                 .tabItem {
-                    Label("Albums", systemImage: "folder")
+                    Label("Albums", systemImage: "rectangle.stack.fill")
                 }
             
             FavoritesView()
                 .tabItem {
-                    Label("Favorites", systemImage: "star")
+                    Label("Favorites", systemImage: "heart.fill")
                 }
             
             SettingsView()
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("Settings", systemImage: "gearshape.fill")
                 }
         }
-        .tint(.lumenAccent)
+        .tint(.yellow)
     }
 }
 
 // MARK: - Login View
-
 struct LoginView: View {
     @EnvironmentObject var auth: AuthManager
     @State private var username = ""
@@ -77,139 +73,123 @@ struct LoginView: View {
     @State private var serverURL = ""
     @FocusState private var focusedField: Field?
     
-    enum Field {
-        case server, username, password
-    }
+    enum Field { case server, username, password }
     
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ZStack {
+            Color.black.ignoresSafeArea()
             
-            // Logo
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(Color.lumenAccent)
-                        .frame(width: 80, height: 80)
-                    
+            VStack(spacing: 0) {
+                Spacer()
+                
+                // Logo
+                VStack(spacing: 12) {
                     Image(systemName: "camera.aperture")
-                        .font(.system(size: 36, weight: .medium))
-                        .foregroundColor(.white)
+                        .font(.system(size: 44))
+                        .foregroundStyle(.white)
+                    
+                    Text("Lumen")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    
+                    Text("Your photos, your server")
+                        .font(.subheadline)
+                        .foregroundStyle(.gray)
                 }
+                .padding(.bottom, 40)
                 
-                Text("Lumen")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundColor(.lumenText)
-                
-                Text("Your photos, your server")
-                    .font(.subheadline)
-                    .foregroundColor(.lumenTextSecondary)
-            }
-            .padding(.bottom, 48)
-            
-            // Form
-            VStack(spacing: 16) {
-                // Server URL
-                HStack {
-                    Image(systemName: "globe")
-                        .foregroundColor(.lumenTextSecondary)
-                        .frame(width: 20)
-                    TextField("Server URL", text: $serverURL)
-                        .textFieldStyle(.plain)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .keyboardType(.URL)
-                        .focused($focusedField, equals: .server)
-                }
-                .padding(14)
-                .background(Color.lumenCard)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(focusedField == .server ? Color.lumenAccent : Color.lumenBorder, lineWidth: 1)
-                )
-                
-                // Username
-                HStack {
-                    Image(systemName: "person")
-                        .foregroundColor(.lumenTextSecondary)
-                        .frame(width: 20)
-                    TextField("Username", text: $username)
-                        .textFieldStyle(.plain)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .focused($focusedField, equals: .username)
-                }
-                .padding(14)
-                .background(Color.lumenCard)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(focusedField == .username ? Color.lumenAccent : Color.lumenBorder, lineWidth: 1)
-                )
-                
-                // Password
-                HStack {
-                    Image(systemName: "lock")
-                        .foregroundColor(.lumenTextSecondary)
-                        .frame(width: 20)
-                    SecureField("Password", text: $password)
-                        .textFieldStyle(.plain)
-                        .focused($focusedField, equals: .password)
-                }
-                .padding(14)
-                .background(Color.lumenCard)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(focusedField == .password ? Color.lumenAccent : Color.lumenBorder, lineWidth: 1)
-                )
-            }
-            .padding(.horizontal, 24)
-            
-            // Error
-            if !error.isEmpty {
-                Text(error)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .padding(.top, 8)
-            }
-            
-            // Button
-            Button(action: handleLogin) {
-                HStack {
-                    if auth.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Text(isSetup ? "Create Account" : "Sign In")
-                            .fontWeight(.semibold)
+                // Form
+                VStack(spacing: 14) {
+                    // Server URL
+                    HStack {
+                        Image(systemName: "globe")
+                            .foregroundStyle(.gray)
+                            .frame(width: 20)
+                        TextField("Server URL", text: $serverURL)
+                            .textFieldStyle(.plain)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .keyboardType(.URL)
+                            .foregroundStyle(.white)
+                            .focused($focusedField, equals: .server)
                     }
+                    .padding(14)
+                    .background(Color(white: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(focusedField == .server ? Color.yellow : Color.clear, lineWidth: 1)
+                    )
+                    
+                    // Username
+                    HStack {
+                        Image(systemName: "person")
+                            .foregroundStyle(.gray)
+                            .frame(width: 20)
+                        TextField("Username", text: $username)
+                            .textFieldStyle(.plain)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .foregroundStyle(.white)
+                            .focused($focusedField, equals: .username)
+                    }
+                    .padding(14)
+                    .background(Color(white: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(focusedField == .username ? Color.yellow : Color.clear, lineWidth: 1)
+                    )
+                    
+                    // Password
+                    HStack {
+                        Image(systemName: "lock")
+                            .foregroundStyle(.gray)
+                            .frame(width: 20)
+                        SecureField("Password", text: $password)
+                            .textFieldStyle(.plain)
+                            .foregroundStyle(.white)
+                            .focused($focusedField, equals: .password)
+                    }
+                    .padding(14)
+                    .background(Color(white: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(focusedField == .password ? Color.yellow : Color.clear, lineWidth: 1)
+                    )
                 }
-                .frame(maxWidth: .infinity)
-                .padding(16)
-                .background(Color.lumenAccent)
-                .foregroundColor(.white)
-                .cornerRadius(14)
+                .padding(.horizontal, 20)
+                
+                // Error
+                if !error.isEmpty {
+                    Text(error)
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                        .padding(.top, 12)
+                }
+                
+                // Button
+                Button(action: handleLogin) {
+                    Text(isSetup ? "Create Account" : "Sign In")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding(16)
+                        .background(Color.yellow)
+                        .foregroundStyle(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .disabled(auth.isLoading || username.isEmpty || password.isEmpty)
+                .opacity(auth.isLoading || username.isEmpty || password.isEmpty ? 0.6 : 1)
+                
+                Spacer()
+                Spacer()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .disabled(auth.isLoading || username.isEmpty || password.isEmpty)
-            .opacity(auth.isLoading || username.isEmpty || password.isEmpty ? 0.6 : 1)
-            
-            Spacer()
-            Spacer()
         }
         .onAppear {
             serverURL = UserDefaults.standard.string(forKey: "server_url") ?? ""
-        }
-        .onSubmit {
-            switch focusedField {
-            case .server: focusedField = .username
-            case .username: focusedField = .password
-            case .password: handleLogin()
-            case .none: break
-            }
         }
     }
     
@@ -239,63 +219,56 @@ struct LoginView: View {
     }
 }
 
-// MARK: - Timeline View
-
+// MARK: - Timeline View (Apple Photos Style)
 struct TimelineView: View {
     @State private var photos: [Photo] = []
     @State private var isLoading = true
+    @State private var selectedPhoto: Photo?
     
     private let columns = [
-        GridItem(.adaptive(minimum: 100, maximum: 200), spacing: 2)
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2)
     ]
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 if isLoading {
                     ProgressView()
-                        .tint(.lumenAccent)
+                        .tint(.white)
                 } else if photos.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 48))
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("No photos yet")
-                            .font(.title3)
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("Upload photos from the web UI or iOS app")
+                            .font(.system(size: 56))
+                            .foregroundStyle(.gray)
+                        Text("No Photos")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                        Text("Photos you add will appear here")
                             .font(.subheadline)
-                            .foregroundColor(.lumenTextSecondary.opacity(0.7))
+                            .foregroundStyle(.gray)
                     }
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 2) {
                             ForEach(photos) { photo in
-                                NavigationLink(destination: PhotoDetailView(photo: photo)) {
-                                    AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/thumbnail")) { image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(1, contentMode: .fill)
-                                            .clipped()
-                                    } placeholder: {
-                                        Rectangle()
-                                            .fill(Color.lumenCard)
-                                            .aspectRatio(1, contentMode: .fill)
-                                            .overlay(
-                                                ProgressView()
-                                                    .tint(.lumenAccent)
-                                            )
+                                PhotoThumbnailView(photo: photo)
+                                    .onTapGesture {
+                                        selectedPhoto = photo
                                     }
-                                }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("Timeline")
+            .navigationTitle("Photos")
             .navigationBarTitleDisplayMode(.large)
+            .sheet(item: $selectedPhoto) { photo in
+                PhotoDetailView(photo: photo)
+            }
             .task {
                 await loadPhotos()
             }
@@ -310,6 +283,40 @@ struct TimelineView: View {
         }
         isLoading = false
     }
+}
+
+// MARK: - Photo Thumbnail
+struct PhotoThumbnailView: View {
+    let photo: Photo
+    
+    var body: some View {
+        GeometryReader { geo in
+            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/thumbnail")) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.width)
+                        .clipped()
+                case .failure:
+                    Rectangle()
+                        .fill(Color(white: 0.15))
+                        .frame(width: geo.size.width, height: geo.size.width)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundStyle(.gray)
+                        )
+                default:
+                    Rectangle()
+                        .fill(Color(white: 0.15))
+                        .frame(width: geo.size.width, height: geo.size.width)
+                        .overlay(ProgressView().tint(.gray))
+                }
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
     
     private var serverURL: String {
         UserDefaults.standard.string(forKey: "server_url") ?? ""
@@ -317,42 +324,78 @@ struct TimelineView: View {
 }
 
 // MARK: - Photo Detail View
-
 struct PhotoDetailView: View {
     let photo: Photo
+    @Environment(\.dismiss) private var dismiss
     @State private var isFavorite = false
     @State private var showingDeleteAlert = false
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/original")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                ProgressView()
-                    .tint(.white)
+            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/original")) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    scale = lastScale * value
+                                }
+                                .onEnded { value in
+                                    lastScale = scale
+                                }
+                        )
+                        .onTapGesture(count: 2) {
+                            withAnimation {
+                                scale = 1.0
+                                lastScale = 1.0
+                            }
+                        }
+                case .failure:
+                    VStack(spacing: 12) {
+                        Image(systemName: "photo")
+                            .font(.largeTitle)
+                            .foregroundStyle(.gray)
+                        Text("Failed to load")
+                            .foregroundStyle(.gray)
+                    }
+                default:
+                    ProgressView()
+                        .tint(.white)
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Done") {
+                    dismiss()
+                }
+                .foregroundStyle(.yellow)
+            }
+            
             ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 16) {
+                HStack(spacing: 20) {
                     Button(action: toggleFavorite) {
-                        Image(systemName: isFavorite ? "star.fill" : "star")
-                            .foregroundColor(isFavorite ? .yellow : .white)
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .foregroundStyle(isFavorite ? .red : .white)
                     }
                     
                     Button(action: { showingDeleteAlert = true }) {
                         Image(systemName: "trash")
-                            .foregroundColor(.red)
+                            .foregroundStyle(.white)
                     }
                     
-                    Link(destination: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/original")!) {
-                        Image(systemName: "arrow.down.to.line")
-                            .foregroundColor(.white)
+                    ShareLink(item: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/original")!) {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundStyle(.white)
                     }
                 }
             }
@@ -362,6 +405,7 @@ struct PhotoDetailView: View {
             Button("Delete", role: .destructive) {
                 Task {
                     try? await APIClient.shared.deletePhoto(id: photo.id)
+                    dismiss()
                 }
             }
         }
@@ -382,7 +426,6 @@ struct PhotoDetailView: View {
 }
 
 // MARK: - Albums List View
-
 struct AlbumsListView: View {
     @State private var albums: [Album] = []
     @State private var isLoading = true
@@ -392,61 +435,63 @@ struct AlbumsListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 if isLoading {
                     ProgressView()
-                        .tint(.lumenAccent)
+                        .tint(.white)
                 } else if albums.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: "folder")
-                            .font(.system(size: 48))
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("No albums yet")
-                            .font(.title3)
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("Create an album to organize your photos")
+                        Image(systemName: "rectangle.stack")
+                            .font(.system(size: 56))
+                            .foregroundStyle(.gray)
+                        Text("No Albums")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                        Text("Create albums to organize your photos")
                             .font(.subheadline)
-                            .foregroundColor(.lumenTextSecondary.opacity(0.7))
+                            .foregroundStyle(.gray)
                     }
                 } else {
-                    List(albums) { album in
-                        NavigationLink(destination: AlbumDetailView(album: album)) {
-                            HStack(spacing: 12) {
-                                if let coverId = album.coverPhotoId {
-                                    AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")) { image in
-                                        image.resizable()
-                                            .frame(width: 56, height: 56)
-                                            .cornerRadius(10)
-                                    } placeholder: {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color.lumenCard)
-                                            .frame(width: 56, height: 56)
+                    List {
+                        Section {
+                            ForEach(albums) { album in
+                                NavigationLink(destination: AlbumDetailView(album: album)) {
+                                    HStack(spacing: 12) {
+                                        if let coverId = album.coverPhotoId {
+                                            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")) { image in
+                                                image.resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: 60, height: 60)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            } placeholder: {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color(white: 0.15))
+                                                    .frame(width: 60, height: 60)
+                                            }
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.yellow.opacity(0.2))
+                                                .frame(width: 60, height: 60)
+                                                .overlay(
+                                                    Image(systemName: "rectangle.stack.fill")
+                                                        .foregroundStyle(.yellow)
+                                                )
+                                        }
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(album.name)
+                                                .foregroundStyle(.white)
+                                            Text("\(album.photoCount ?? 0) photos")
+                                                .font(.subheadline)
+                                                .foregroundStyle(.gray)
+                                        }
                                     }
-                                } else {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.lumenAccent.opacity(0.2))
-                                        .frame(width: 56, height: 56)
-                                        .overlay(
-                                            Image(systemName: "folder.fill")
-                                                .foregroundColor(.lumenAccent)
-                                        )
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(album.name)
-                                        .font(.headline)
-                                        .foregroundColor(.lumenText)
-                                    Text("\(album.photoCount ?? 0) photos")
-                                        .font(.subheadline)
-                                        .foregroundColor(.lumenTextSecondary)
                                 }
                             }
-                            .padding(.vertical, 4)
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
+                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("Albums")
@@ -454,7 +499,7 @@ struct AlbumsListView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingNewAlbum = true }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.lumenAccent)
+                            .foregroundStyle(.yellow)
                     }
                 }
             }
@@ -487,103 +532,90 @@ struct AlbumsListView: View {
 }
 
 // MARK: - Album Detail View
-
 struct AlbumDetailView: View {
     let album: Album
+    @State private var selectedPhoto: Photo?
     
     private let columns = [
-        GridItem(.adaptive(minimum: 100, maximum: 200), spacing: 2)
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2)
     ]
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             
             if let photos = album.photos, !photos.isEmpty {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 2) {
                         ForEach(photos) { photo in
-                            NavigationLink(destination: PhotoDetailView(photo: photo)) {
-                                AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/thumbnail")) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(1, contentMode: .fill)
-                                        .clipped()
-                                } placeholder: {
-                                    Rectangle()
-                                        .fill(Color.lumenCard)
-                                        .aspectRatio(1, contentMode: .fill)
+                            PhotoThumbnailView(photo: photo)
+                                .onTapGesture {
+                                    selectedPhoto = photo
                                 }
-                            }
                         }
                     }
                 }
             } else {
                 VStack(spacing: 16) {
                     Image(systemName: "photo.on.rectangle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.lumenTextSecondary)
-                    Text("No photos in this album")
-                        .font(.title3)
-                        .foregroundColor(.lumenTextSecondary)
+                        .font(.system(size: 56))
+                        .foregroundStyle(.gray)
+                    Text("No Photos")
+                        .font(.title2)
+                        .foregroundStyle(.white)
                 }
             }
         }
         .navigationTitle(album.name)
         .navigationBarTitleDisplayMode(.large)
-    }
-    
-    private var serverURL: String {
-        UserDefaults.standard.string(forKey: "server_url") ?? ""
+        .sheet(item: $selectedPhoto) { photo in
+            PhotoDetailView(photo: photo)
+        }
     }
 }
 
 // MARK: - Favorites View
-
 struct FavoritesView: View {
     @State private var photos: [Photo] = []
     @State private var isLoading = true
+    @State private var selectedPhoto: Photo?
     
     private let columns = [
-        GridItem(.adaptive(minimum: 100, maximum: 200), spacing: 2)
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2)
     ]
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 if isLoading {
                     ProgressView()
-                        .tint(.lumenAccent)
+                        .tint(.white)
                 } else if photos.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: "star")
-                            .font(.system(size: 48))
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("No favorites yet")
-                            .font(.title3)
-                            .foregroundColor(.lumenTextSecondary)
-                        Text("Star photos in Timeline to add them here")
+                        Image(systemName: "heart")
+                            .font(.system(size: 56))
+                            .foregroundStyle(.gray)
+                        Text("No Favorites")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                        Text("Photos you favorite will appear here")
                             .font(.subheadline)
-                            .foregroundColor(.lumenTextSecondary.opacity(0.7))
+                            .foregroundStyle(.gray)
                     }
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 2) {
                             ForEach(photos) { photo in
-                                NavigationLink(destination: PhotoDetailView(photo: photo)) {
-                                    AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/thumbnail")) { image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(1, contentMode: .fill)
-                                            .clipped()
-                                    } placeholder: {
-                                        Rectangle()
-                                            .fill(Color.lumenCard)
-                                            .aspectRatio(1, contentMode: .fill)
+                                PhotoThumbnailView(photo: photo)
+                                    .onTapGesture {
+                                        selectedPhoto = photo
                                     }
-                                }
                             }
                         }
                     }
@@ -591,6 +623,9 @@ struct FavoritesView: View {
             }
             .navigationTitle("Favorites")
             .navigationBarTitleDisplayMode(.large)
+            .sheet(item: $selectedPhoto) { photo in
+                PhotoDetailView(photo: photo)
+            }
             .task {
                 do {
                     let all = try await APIClient.shared.listPhotos()
@@ -602,14 +637,9 @@ struct FavoritesView: View {
             }
         }
     }
-    
-    private var serverURL: String {
-        UserDefaults.standard.string(forKey: "server_url") ?? ""
-    }
 }
 
 // MARK: - Settings View
-
 struct SettingsView: View {
     @EnvironmentObject var auth: AuthManager
     @EnvironmentObject var sync: SyncManager
@@ -619,13 +649,13 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
-                Form {
+                List {
                     Section {
                         HStack {
                             Image(systemName: "globe")
-                                .foregroundColor(.lumenAccent)
+                                .foregroundStyle(.yellow)
                                 .frame(width: 24)
                             TextField("Server URL", text: $serverURL)
                                 .autocapitalization(.none)
@@ -641,24 +671,12 @@ struct SettingsView: View {
                     Section {
                         HStack {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.lumenAccent)
+                                .foregroundStyle(.yellow)
                                 .frame(width: 24)
                             Text("Status")
                             Spacer()
                             Text(sync.isSyncing ? "Syncing..." : "Idle")
-                                .foregroundColor(.lumenTextSecondary)
-                        }
-                        
-                        if let lastSync = sync.lastSyncDate {
-                            HStack {
-                                Image(systemName: "clock")
-                                    .foregroundColor(.lumenAccent)
-                                    .frame(width: 24)
-                                Text("Last Sync")
-                                Spacer()
-                                Text(lastSync.formatted())
-                                    .foregroundColor(.lumenTextSecondary)
-                            }
+                                .foregroundStyle(.gray)
                         }
                         
                         Button(action: {
@@ -668,7 +686,7 @@ struct SettingsView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.clockwise")
-                                    .foregroundColor(.lumenAccent)
+                                    .foregroundStyle(.yellow)
                                     .frame(width: 24)
                                 Text("Sync Now")
                             }
@@ -681,32 +699,22 @@ struct SettingsView: View {
                         if let user = auth.user {
                             HStack {
                                 Image(systemName: "person")
-                                    .foregroundColor(.lumenAccent)
+                                    .foregroundStyle(.yellow)
                                     .frame(width: 24)
                                 Text("Username")
                                 Spacer()
                                 Text(user.username)
-                                    .foregroundColor(.lumenTextSecondary)
-                            }
-                            
-                            HStack {
-                                Image(systemName: "shield")
-                                    .foregroundColor(.lumenAccent)
-                                    .frame(width: 24)
-                                Text("Admin")
-                                Spacer()
-                                Text(user.isAdmin ? "Yes" : "No")
-                                    .foregroundColor(.lumenTextSecondary)
+                                    .foregroundStyle(.gray)
                             }
                         }
                         
                         Button(action: { showingLogoutAlert = true }) {
                             HStack {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .foregroundColor(.red)
+                                    .foregroundStyle(.red)
                                     .frame(width: 24)
                                 Text("Sign Out")
-                                    .foregroundColor(.red)
+                                    .foregroundStyle(.red)
                             }
                         }
                     } header: {
@@ -719,16 +727,16 @@ struct SettingsView: View {
                             VStack(spacing: 4) {
                                 Text("Lumen")
                                     .font(.headline)
-                                    .foregroundColor(.lumenText)
+                                    .foregroundStyle(.white)
                                 Text("v1.0.0")
                                     .font(.caption)
-                                    .foregroundColor(.lumenTextSecondary)
+                                    .foregroundStyle(.gray)
                             }
                             Spacer()
                         }
                     }
                 }
-                .scrollContentBackground(.hidden)
+                .listStyle(.insetGrouped)
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
