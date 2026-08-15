@@ -1,0 +1,54 @@
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: lumen
+  author: Shaember
+  category: Backup
+  description:
+    en_us: "Self-hosted personal photo backup and viewing system — an iCloud Photos replacement. Storage transparency: originals in human-readable folders, browsable via SMB."
+    ru_ru: "Самостоятельная система резервного копирования и просмотра фотографий — замена iCloud Photos. Прозрачность хранения: оригиналы в читаемых папках."
+  developer: Shaember
+  icon: "https://raw.githubusercontent.com/Shaember/Lumen/main/ios/Lumen/Resources/Assets.xcassets/AppIcon.appiconset/icon.png"
+  tagline:
+    en_us: "Your photos, your server — self-hosted iCloud replacement"
+    ru_ru: "Ваши фото, ваш сервер — замена iCloud"
+  title:
+    en_us: Lumen
+    ru_ru: Lumen
+  tips:
+    before_install:
+      en_us: |
+        ## First Run
+        1. Open Lumen at http://YOUR_IP:3000
+        2. Create admin account (first-run wizard)
+        3. Upload photos via web UI or iOS app
+        
+        ## iOS App
+        Install from TestFlight or build from source.
+        Server URL: http://YOUR_IP:3000
+        
+        ## Storage
+        Photos are stored at /DATA/Photos/ in human-readable folders:
+        /DATA/Photos/YYYY/YYYY-MM/YYYY-MM-DD_HHMMSS_name.ext
+        
+        Accessible via SMB/Samba without Lumen.
+  index: /
+  port_map: "3000"
+
+services:
+  lumen:
+    image: ghcr.io/shaember/lumen:latest
+    container_name: lumen
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - LUMEN_DATA_DIR=/data
+      - LUMEN_DB_PATH=/data/lumen.db
+      - LUMEN_JWT_SECRET=${JWT_SECRET}
+      - LUMEN_PORT=3000
+      - LUMEN_CORS_ORIGIN=http://${IP}:${PORT}
+    volumes:
+      - /DATA/AppData/lumen/data:/data
+      - /DATA/Photos:/data/photos

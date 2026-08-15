@@ -1,0 +1,13 @@
+:3000 {
+    # API proxy
+    handle /api/* {
+        reverse_proxy localhost:8080
+    }
+
+    # Everything else goes to web frontend
+    handle {
+        root * /app/web/build
+        file_server
+        try_files {path} /index.html
+    }
+}
