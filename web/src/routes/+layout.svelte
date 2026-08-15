@@ -19,11 +19,6 @@
 			}
 		}
 		loading = false;
-		
-		// Redirect to login if not authenticated and not already on login page
-		if (!user && !$page.url.pathname.startsWith('/auth')) {
-			goto('/auth/login');
-		}
 	});
 
 	const navItems = [
@@ -77,8 +72,5 @@
 		</main>
 	</div>
 {:else}
-	<!-- Redirecting to login... -->
-	<div class="flex items-center justify-center min-h-screen bg-[var(--bg-primary)]">
-		<div class="w-12 h-12 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-	</div>
+	{@render children()}
 {/if}
