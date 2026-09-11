@@ -60,6 +60,17 @@ class APIClient {
         if let month = month { query += "&month=\(month)" }
         return try await get("/photos?\(query)")
     }
+
+    func listAllPhotos(max: Int = 5000) async throws -> [Photo] {
+        let pageSize = 200
+        var all: [Photo] = []
+        while all.count < max {
+            let batch = try await listPhotos(offset: all.count, limit: min(pageSize, max - all.count))
+            all.append(contentsOf: batch)
+            if batch.count < pageSize { break }
+        }
+        return all
+    }
     
     func getPhoto(id: Int64) async throws -> Photo {
         return try await get("/photos/\(id)")
@@ -128,6 +139,14 @@ class APIClient {
     
     func getAlbum(id: Int64) async throws -> Album {
         return try await get("/albums/\(id)")
+    }
+
+    func addPhotosToAlbum(id: Int64, photoIds: [Int64]) async throws {
+        let _: EmptyResponse = try await post("/albums/\(id)/photos", body: ["photo_ids": photoIds.map { Int($0) }])
+    }
+    
+    func removePhotoFromAlbum(albumId: Int64, photoId: Int64) async throws {
+        let _: EmptyResponse = try await delete("/albums/\(albumId)/photos/\(photoId)")
     }
     
     // MARK: - Devices
