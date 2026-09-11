@@ -26,7 +26,7 @@
 		justify-content: space-between;
 		gap: 1rem;
 	}
-	error-box p {
+	.error-box p {
 		margin: 0;
 		font-size: 0.875rem;
 	}
