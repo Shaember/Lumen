@@ -1,0 +1,261 @@
+import SwiftUI
+import Photos
+
+// MARK: - Albums
+struct AlbumsListView: View {
+    @State private var albums: [Album] = []
+    @State private var isLoading = true
+    @State private var showingNewAlbum = false
+    @State private var newAlbumName = ""
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.lumenBg.ignoresSafeArea()
+                
+                if isLoading {
+                    ProgressView().tint(Color.lumenAccent)
+                } else if albums.isEmpty {
+                    Text("Альбомов пока нет")
+                        .foregroundStyle(Color.lumenMuted)
+                } else {
+                    List {
+                        ForEach(albums) { album in
+                            NavigationLink(destination: AlbumDetailView(album: album)) {
+                                HStack(spacing: 12) {
+                                    if let coverId = album.coverPhotoId {
+                                        AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")) { image in
+                                            image.resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 60, height: 60)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } placeholder: {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.lumenRaised)
+                                                .frame(width: 60, height: 60)
+                                        }
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.lumenRaised)
+                                            .frame(width: 60, height: 60)
+                                            .overlay(
+                                                Image(systemName: "rectangle.stack")
+                                                    .foregroundStyle(Color.lumenAccent)
+                                            )
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(album.name).foregroundStyle(Color.lumenText)
+                                        Text("\(album.photoCount ?? 0) фото")
+                                            .font(.subheadline)
+                                            .foregroundStyle(Color.lumenMuted)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle("Альбомы")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { showingNewAlbum = true }) {
+                        Image(systemName: "plus")
+                            .foregroundStyle(Color.lumenAccent)
+                    }
+                }
+            }
+            .alert("Новый альбом", isPresented: $showingNewAlbum) {
+                TextField("Название", text: $newAlbumName)
+                Button("Создать") {
+                    Task {
+                        if let album = try? await APIClient.shared.createAlbum(name: newAlbumName) {
+                            albums.append(album)
+                            newAlbumName = ""
+                        }
+                    }
+                }
+                Button("Отмена", role: .cancel) { newAlbumName = "" }
+            }
+            .task {
+                do { albums = try await APIClient.shared.listAlbums() } catch { print(error) }
+                isLoading = false
+            }
+        }
+    }
+    
+    private var serverURL: String {
+        UserDefaults.standard.string(forKey: "server_url") ?? ""
+    }
+}
+
+struct AlbumDetailView: View {
+    let album: Album
+    @State private var selectedPhoto: Photo?
+    @State private var detail: Album?
+    @State private var selecting = false
+    @State private var selectedIds: Set<Int64> = []
+    @State private var showAdd = false
+    @State private var library: [Photo] = []
+    @State private var librarySelection: Set<Int64> = []
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2)
+    ]
+    
+    private var photos: [Photo] { detail?.photos ?? album.photos ?? [] }
+    
+    var body: some View {
+        ZStack {
+            Color.lumenBg.ignoresSafeArea()
+            if photos.isEmpty {
+                VStack(spacing: 12) {
+                    Text("В альбоме нет фотографий")
+                        .foregroundStyle(Color.lumenMuted)
+                    Button("Добавить") { showAdd = true }
+                        .foregroundStyle(Color.lumenAccent)
+                }
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 2) {
+                        ForEach(photos) { photo in
+                            PhotoThumbnailView(photo: photo)
+                                .opacity(selectedIds.contains(photo.id) ? 0.88 : 1)
+                                .overlay(alignment: .topTrailing) {
+                                    if selecting {
+                                        Image(systemName: selectedIds.contains(photo.id) ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(Color.lumenAccent)
+                                            .padding(6)
+                                    }
+                                }
+                                .onTapGesture {
+                                    if selecting {
+                                        if selectedIds.contains(photo.id) {
+                                            selectedIds.remove(photo.id)
+                                        } else {
+                                            selectedIds.insert(photo.id)
+                                        }
+                                    } else {
+                                        selectedPhoto = photo
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(album.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(selecting ? "Готово" : "Выбрать") {
+                    selecting.toggle()
+                    selectedIds.removeAll()
+                }
+                .foregroundStyle(Color.lumenAccent)
+                Button { showAdd = true } label: {
+                    Image(systemName: "plus")
+                        .foregroundStyle(Color.lumenAccent)
+                }
+                .accessibilityLabel("Добавить фото")
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if selecting && !selectedIds.isEmpty {
+                HStack {
+                    Text("\(selectedIds.count)")
+                        .font(.body.weight(.semibold))
+                    Spacer()
+                    Button(role: .destructive) {
+                        Task { await removeSelected() }
+                    } label: {
+                        Label("Из альбома", systemImage: "xmark")
+                    }
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 56)
+                .background(.ultraThinMaterial)
+            }
+        }
+        .fullScreenCover(item: $selectedPhoto) { photo in
+            PhotoDetailView(photo: photo, allPhotos: photos)
+        }
+        .sheet(isPresented: $showAdd) {
+            NavigationStack {
+                ZStack {
+                    Color.lumenBg.ignoresSafeArea()
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 2) {
+                            ForEach(library) { photo in
+                                PhotoThumbnailView(photo: photo)
+                                    .overlay(alignment: .topTrailing) {
+                                        Image(systemName: librarySelection.contains(photo.id) ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(Color.lumenAccent)
+                                            .padding(6)
+                                    }
+                                    .onTapGesture {
+                                        if librarySelection.contains(photo.id) {
+                                            librarySelection.remove(photo.id)
+                                        } else {
+                                            librarySelection.insert(photo.id)
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Добавить фото")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Отмена") { showAdd = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Добавить") {
+                            Task { await addSelected() }
+                        }
+                        .disabled(librarySelection.isEmpty)
+                    }
+                }
+                .task { await loadLibrary() }
+            }
+            .tint(Color.lumenAccent)
+            .presentationBackground(Color.lumenRaised)
+        }
+        .task { await reload() }
+    }
+    
+    private func reload() async {
+        detail = try? await APIClient.shared.getAlbum(id: album.id)
+    }
+    
+    private func loadLibrary() async {
+        let all = (try? await APIClient.shared.listAllPhotos()) ?? []
+        let existing = Set(photos.map(\.id))
+        library = all.filter { !existing.contains($0.id) }
+        librarySelection.removeAll()
+    }
+    
+    private func addSelected() async {
+        do {
+            try await APIClient.shared.addPhotosToAlbum(id: album.id, photoIds: Array(librarySelection))
+            showAdd = false
+            await reload()
+        } catch { print(error) }
+    }
+    
+    private func removeSelected() async {
+        do {
+            for id in selectedIds {
+                try await APIClient.shared.removePhotoFromAlbum(albumId: album.id, photoId: id)
+            }
+            selecting = false
+            selectedIds.removeAll()
+            await reload()
+        } catch { print(error) }
+    }
+}
