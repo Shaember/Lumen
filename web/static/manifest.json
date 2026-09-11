@@ -4,8 +4,8 @@
   "description": "Personal photo backup and viewing",
   "start_url": "/photos",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#0f1117",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
   "icons": [
     {
       "src": "/favicon.svg",

@@ -1,11 +1,18 @@
 <script lang="ts">
-import { onMount } from 'svelte';
-	import { listAlbums, createAlbum, deleteAlbum, type Album } from '$lib/api/client';
+	import { onMount } from 'svelte';
+	import { listAlbums, createAlbum, deleteAlbum, photoUrl, type Album } from '$lib/api/client';
+	import AuthImage from '$lib/components/AuthImage.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import ErrorState from '$lib/components/ErrorState.svelte';
+	import { showToast } from '$lib/toast';
 
 	let albums = $state<Album[]>([]);
 	let loading = $state(true);
+	let error = $state<string | null>(null);
 	let showNew = $state(false);
 	let newName = $state('');
+	let confirmId = $state<number | null>(null);
 
 	onMount(async () => {
 		await loadAlbums();
@@ -13,39 +20,48 @@ import { onMount } from 'svelte';
 
 	async function loadAlbums() {
 		loading = true;
+		error = null;
 		try {
 			albums = await listAlbums();
-		} catch (e) {
-			console.error('Failed to load albums:', e);
+		} catch (e: any) {
+			error = e?.message || 'Failed to load albums';
+			albums = [];
 		}
 		loading = false;
 	}
 
-	async function handleCreate() {
+	async function handleCreate(e: Event) {
+		e.preventDefault();
 		if (!newName.trim()) return;
 		try {
 			await createAlbum(newName.trim());
 			newName = '';
 			showNew = false;
 			await loadAlbums();
-		} catch (e) {
-			console.error('Failed to create album:', e);
+		} catch (err: any) {
+			showToast(err?.message || 'Failed to create album', 'danger');
 		}
 	}
 
-	async function handleDelete(id: number) {
-		if (!confirm('Delete this album?')) return;
-		await deleteAlbum(id);
-		albums = albums.filter(a => a.id !== id);
+	async function confirmDelete() {
+		if (confirmId == null) return;
+		const id = confirmId;
+		confirmId = null;
+		try {
+			await deleteAlbum(id);
+			albums = albums.filter((a) => a.id !== id);
+		} catch (err: any) {
+			showToast(err?.message || 'Delete failed', 'danger');
+		}
 	}
 </script>
 
 <div class="max-w-7xl mx-auto px-4 py-6">
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-xl font-semibold">Albums</h1>
+		<h1 class="text-xl font-semibold text-[var(--text)]">Albums</h1>
 		<button
-			onclick={() => showNew = !showNew}
-			class="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm transition-colors"
+			onclick={() => (showNew = !showNew)}
+			class="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--bg)] rounded-[6px] text-sm transition-colors"
 		>
 			+ New Album
 		</button>
@@ -57,11 +73,11 @@ import { onMount } from 'svelte';
 				type="text"
 				bind:value={newName}
 				placeholder="Album name"
-				class="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+				class="flex-1 px-3 py-2 bg-[var(--raised)] border border-[var(--hairline)] rounded-[6px] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
 			/>
 			<button
 				type="submit"
-				class="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-sm transition-colors"
+				class="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--bg)] rounded-[6px] text-sm transition-colors"
 			>
 				Create
 			</button>
@@ -69,44 +85,60 @@ import { onMount } from 'svelte';
 	{/if}
 
 	{#if loading}
-		<div class="text-center py-20 text-[var(--text-secondary)]">Loading albums...</div>
+		<div class="text-center py-20 text-[var(--muted)]">Loading albums...</div>
+	{:else if error}
+		<ErrorState message={error} onretry={loadAlbums} />
 	{:else if albums.length === 0}
-		<div class="text-center py-20 text-[var(--text-secondary)]">
-			<p class="text-lg mb-2">No albums yet</p>
-			<p class="text-sm">Create an album to organize your photos</p>
-		</div>
+		<EmptyState
+			message="No albums yet"
+			ctaLabel="Создать альбом"
+			oncta={() => (showNew = true)}
+		/>
 	{:else}
 		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
 			{#each albums as album}
-				<a href="/albums/{album.id}" class="block group">
-					<div class="aspect-square bg-[var(--bg-secondary)] rounded-xl overflow-hidden relative">
-						{#if album.cover_photo_id}
-							<img
-								src="/api/v1/photos/{album.cover_photo_id}/thumbnail"
-								alt={album.name}
-								class="w-full h-full object-cover"
-							/>
-						{:else}
-							<div class="w-full h-full flex items-center justify-center text-3xl text-[var(--text-secondary)]">
-								📁
-							</div>
-						{/if}
-						<div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors"></div>
-					</div>
-					<div class="mt-2 flex items-center justify-between">
-						<div>
-							<p class="font-medium text-sm">{album.name}</p>
-							<p class="text-xs text-[var(--text-secondary)]">{album.photo_count} photos</p>
+				<div class="block group relative">
+					<a href="/albums/{album.id}" class="block">
+						<div class="aspect-square bg-[var(--raised)] rounded-[8px] overflow-hidden relative border border-[var(--hairline)]">
+							{#if album.cover_photo_id}
+								<AuthImage
+									src={photoUrl(album.cover_photo_id, true)}
+									alt={album.name}
+									class="w-full h-full object-cover"
+								/>
+							{:else}
+								<div class="w-full h-full flex items-center justify-center text-sm text-[var(--muted)]">
+									Empty
+								</div>
+							{/if}
 						</div>
-						<button
-							onclick={(e) => { e.stopPropagation(); handleDelete(album.id); }}
-							class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-red-400 text-xs transition-colors opacity-0 group-hover:opacity-100"
-						>
-							×
-						</button>
-					</div>
-				</a>
+						<div class="mt-2">
+							<p class="font-medium text-sm text-[var(--text)]">{album.name}</p>
+							<p class="text-xs text-[var(--muted)]">{album.photo_count} photos</p>
+						</div>
+					</a>
+					<button
+						onclick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							confirmId = album.id;
+						}}
+						class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-black/50 text-[var(--text)] text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+						aria-label="Delete album"
+					>
+						×
+					</button>
+				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
+
+<ConfirmDialog
+	open={confirmId != null}
+	title="Delete album?"
+	message="This will permanently delete the album. Photos inside are not deleted."
+	confirmLabel="Delete"
+	onconfirm={confirmDelete}
+	oncancel={() => (confirmId = null)}
+/>

@@ -210,7 +210,7 @@ func (h *PhotoHandler) ServeOriginal(w http.ResponseWriter, r *http.Request) {
 
 	var path, mime string
 	err := h.DB.QueryRow(
-		"SELECT original_path, mime_type FROM photos WHERE id=? AND user_id=? AND is_deleted=FALSE",
+		"SELECT original_path, mime_type FROM photos WHERE id=? AND user_id=?",
 		photoID, userID,
 	).Scan(&path, &mime)
 	if err != nil {
@@ -227,7 +227,7 @@ func (h *PhotoHandler) ServeThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	var thumbPath, originalPath, mime sql.NullString
 	err := h.DB.QueryRow(
-		"SELECT thumbnail_path, original_path, mime_type FROM photos WHERE id=? AND user_id=? AND is_deleted=FALSE",
+		"SELECT thumbnail_path, original_path, mime_type FROM photos WHERE id=? AND user_id=?",
 		photoID, userID,
 	).Scan(&thumbPath, &originalPath, &mime)
 	if err != nil {
