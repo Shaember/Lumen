@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0f1117;
-  --bg-secondary: #1a1d27;
-  --bg-tertiary: #252836;
-  --text-primary: #e8e8ed;
-  --text-secondary: #9a9ab0;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --border: #2d3040;
+	--bg: #0a0a0a;
+	--raised: #141414;
+	--raised-2: #1a1a1a;
+	--glass: rgba(10, 10, 10, 0.72);
+	--hairline: rgba(232, 228, 217, 0.12);
+	--text: #f4f1ea;
+	--muted: #8a8578;
+	--accent: #e8e4d9;
+	--accent-ink: #0a0a0a;
+	--danger: #e24b4b;
+	--success: #6fcf97;
+	--overlay: rgba(0, 0, 0, 0.55);
+	--viewer-bg: #000000;
+	--motion: 160ms;
+	--radius-control: 6px;
+	--radius-sheet: 8px;
+	--grid-gutter: 2px;
+
+	/* Back-compat aliases */
+	--bg-primary: var(--bg);
+	--bg-secondary: var(--raised);
+	--bg-tertiary: var(--raised-2);
+	--text-primary: var(--text);
+	--text-secondary: var(--muted);
+	--accent-hover: #f4f1ea;
+	--border: var(--hairline);
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family:
+		'Inter',
+		-apple-system,
+		BlinkMacSystemFont,
+		'SF Pro Text',
+		'Segoe UI',
+		system-ui,
+		sans-serif;
+	-webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+*:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.glass-chrome {
+	background: var(--glass);
+	backdrop-filter: blur(24px) saturate(1.8);
+	-webkit-backdrop-filter: blur(24px) saturate(1.8);
+}
+
+.skeleton-pulse {
+	background: var(--raised);
+	animation: skeleton 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+	.skeleton-pulse {
+		animation: none;
+		opacity: 0.7;
+	}
+}
+
+.photo-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--grid-gutter);
+}
+
+@media (min-width: 640px) {
+	.photo-grid {
+		grid-template-columns: repeat(5, 1fr);
+	}
+}
+
+@media (min-width: 1024px) {
+	.photo-grid {
+		grid-template-columns: repeat(7, 1fr);
+	}
+}
+
+@media (min-width: 1280px) {
+	.photo-grid {
+		grid-template-columns: repeat(8, 1fr);
+	}
+}
+
+.photo-tile {
+	aspect-ratio: 1;
+	overflow: hidden;
+	border-radius: 0;
+	background: var(--raised);
+	position: relative;
+	display: block;
+}
+
+::-webkit-scrollbar {
+	width: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--hairline);
+	border-radius: 3px;
+}
+
+/* Section-level virtualization hint for long timelines. */
+.timeline-day {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 420px;
+}
