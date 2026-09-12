@@ -38,7 +38,7 @@ struct FavoritesView: View {
                 }
             }
             .navigationTitle("Избранное")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(item: $selectedPhoto) { photo in
                 PhotoDetailView(photo: photo, allPhotos: photos)
             }
@@ -133,7 +133,7 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Настройки")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 serverURL = UserDefaults.standard.string(forKey: "server_url") ?? ""
             }
