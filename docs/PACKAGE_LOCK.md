@@ -1,9 +1,6 @@
 # package-lock.json
 
-`web/package-lock.json` is required for `npm ci` in:
-
-- `web/Dockerfile`
-- `zimaos/Dockerfile`
+Preferred: commit `web/package-lock.json` so Docker/Zima can run `npm ci`.
 
 If the lockfile is missing after clone:
 
@@ -11,4 +8,8 @@ If the lockfile is missing after clone:
 cd web && npm install
 ```
 
-Then commit the generated `web/package-lock.json` before building Docker/Zima images.
+Dockerfiles (`web/Dockerfile`, `zimaos/Dockerfile`) accept either path:
+- lock present → `npm ci`
+- lock missing → `npm install` (slower, non-reproducible)
+
+Commit the lockfile when size allows for reproducible builds.
