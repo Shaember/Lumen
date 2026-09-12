@@ -161,46 +161,48 @@
 	ontouchend={onTouchEnd}
 >
 	{#if chromeVisible}
-		<div
-			class="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-3 h-14 glass-chrome border-b border-[var(--hairline)]"
-		>
-			<button
-				type="button"
-				onclick={() => goto('/photos')}
-				class="w-11 h-11 flex items-center justify-center text-[var(--text)]"
-				aria-label="Закрыть"
-				title="Esc"
-			>
-				<Icon name="close" size={22} />
-			</button>
-			<div class="flex items-center gap-1">
+		<!-- ~80px glass-fade top -->
+		<div class="absolute top-0 inset-x-0 z-20 h-20 pointer-events-none">
+			<div class="absolute inset-0 glass-fade-top"></div>
+			<div class="relative h-full flex items-center justify-between px-3 pointer-events-auto">
 				<button
 					type="button"
-					onclick={handleFavorite}
-					class="w-11 h-11 flex items-center justify-center text-[var(--text)]"
-					aria-label="Избранное"
-					disabled={!photo}
+					onclick={() => goto('/photos')}
+					class="w-11 h-11 flex items-center justify-center text-[var(--text)] rounded-[6px]"
+					aria-label="Закрыть"
+					title="Esc"
 				>
-					<Icon name={photo?.is_favorite ? 'heart-fill' : 'heart'} size={22} />
+					<Icon name="close" size={22} />
 				</button>
-				<button
-					type="button"
-					onclick={handleDownload}
-					class="w-11 h-11 flex items-center justify-center text-[var(--text)]"
-					aria-label="Скачать"
-					disabled={!photo}
-				>
-					<Icon name="download" size={22} />
-				</button>
-				<button
-					type="button"
-					onclick={() => (confirmOpen = true)}
-					class="w-11 h-11 flex items-center justify-center text-[var(--danger)]"
-					aria-label="Удалить"
-					disabled={!photo}
-				>
-					<Icon name="trash" size={22} />
-				</button>
+				<div class="flex items-center gap-1">
+					<button
+						type="button"
+						onclick={handleFavorite}
+						class="w-11 h-11 flex items-center justify-center text-[var(--text)] rounded-[6px]"
+						aria-label="Избранное"
+						disabled={!photo}
+					>
+						<Icon name={photo?.is_favorite ? 'heart-fill' : 'heart'} size={22} />
+					</button>
+					<button
+						type="button"
+						onclick={handleDownload}
+						class="w-11 h-11 flex items-center justify-center text-[var(--text)] rounded-[6px]"
+						aria-label="Скачать"
+						disabled={!photo}
+					>
+						<Icon name="download" size={22} />
+					</button>
+					<button
+						type="button"
+						onclick={() => (confirmOpen = true)}
+						class="w-11 h-11 flex items-center justify-center text-[var(--danger)] rounded-[6px]"
+						aria-label="Удалить"
+						disabled={!photo}
+					>
+						<Icon name="trash" size={22} />
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -225,7 +227,7 @@
 						e.stopPropagation();
 						goPrev();
 					}}
-					class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)]"
+					class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
 					aria-label="Назад"
 				>
 					<Icon name="chevron-left" size={28} />
@@ -249,7 +251,7 @@
 						e.stopPropagation();
 						goNext();
 					}}
-					class="absolute right-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)]"
+					class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
 					aria-label="Вперёд"
 				>
 					<Icon name="chevron-right" size={28} />
@@ -269,21 +271,25 @@
 	</div>
 
 	{#if chromeVisible && filmstrip.length > 0 && photo}
-		<div
-			class="h-[72px] shrink-0 glass-chrome border-t border-[var(--hairline)] overflow-x-auto flex items-center gap-0.5 px-2"
-		>
-			{#each filmstrip as p (p.id)}
-				<button
-					type="button"
-					onclick={() => goto(`/photos/${p.id}`)}
-					class="w-14 h-14 shrink-0 overflow-hidden {p.id === photo.id
-						? 'ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-black'
-						: 'opacity-70'}"
-					aria-label={p.filename}
-				>
-					<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
-				</button>
-			{/each}
+		<!-- 72px filmstrip under ~80px glass-fade bottom -->
+		<div class="relative shrink-0 h-[72px]">
+			<div class="absolute inset-x-0 bottom-0 h-20 glass-fade-bottom pointer-events-none -top-5"></div>
+			<div
+				class="relative h-[72px] overflow-x-auto flex items-center gap-0.5 px-2"
+			>
+				{#each filmstrip as p (p.id)}
+					<button
+						type="button"
+						onclick={() => goto(`/photos/${p.id}`)}
+						class="w-14 h-14 shrink-0 overflow-hidden rounded-[2px] {p.id === photo.id
+							? 'ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-black'
+							: 'opacity-70'}"
+						aria-label={p.filename}
+					>
+						<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
+					</button>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>
