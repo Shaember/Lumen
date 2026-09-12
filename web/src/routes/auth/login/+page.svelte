@@ -141,7 +141,8 @@
 				<button
 					type="submit"
 					disabled={loading || username.length < 1 || password.length < 8 || (isSetup && password !== confirmPassword)}
-					class="w-full h-11 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-ink)] rounded-[6px] text-sm font-semibold transition-opacity duration-[160ms] disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+					class="btn-primary w-full font-semibold mt-1"
+					style="height:44px;min-height:44px"
 				>
 					{#if loading}
 						{isSetup ? 'Создание…' : 'Вход…'}

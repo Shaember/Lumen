@@ -272,18 +272,20 @@
 	</div>
 
 	{#if chromeVisible && filmstrip.length > 0 && photo}
-		<!-- Full-width bottom glass strip 72px with real thumbs; ~80px fade above -->
+		<!-- Full-width bottom glass strip locked 72px; thumbs 72px; ~80px fade above -->
 		<div class="relative shrink-0">
 			<div class="absolute inset-x-0 bottom-full h-20 glass-fade-bottom pointer-events-none"></div>
-			<div class="relative h-[72px] w-full glass-chrome border-t border-[var(--hairline)]">
-				<div class="h-full overflow-x-auto flex items-center gap-0.5 px-2">
+			<div
+				class="relative viewer-filmstrip w-full glass-chrome"
+				style="height:72px;min-height:72px;max-height:72px"
+			>
+				<div class="viewer-filmstrip-track">
 					{#each filmstrip as p (p.id)}
 						<button
 							type="button"
 							onclick={() => goto(`/photos/${p.id}`)}
-							class="h-14 w-14 shrink-0 overflow-hidden rounded-[2px] {p.id === photo.id
-								? 'ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-black'
-								: 'opacity-70'}"
+							class="viewer-filmstrip-thumb {p.id === photo.id ? 'is-current' : ''}"
+							style="height:72px;width:72px;min-height:72px;min-width:72px;max-height:72px;max-width:72px"
 							aria-label={p.filename}
 						>
 							<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
