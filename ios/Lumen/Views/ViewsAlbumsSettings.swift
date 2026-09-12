@@ -16,7 +16,7 @@ struct AlbumsListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                LumenAtmosphere()
                 
                 if isLoading {
                     ProgressView().tint(Color.lumenAccent)
@@ -146,7 +146,7 @@ struct AlbumDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            LumenAtmosphere()
             if photos.isEmpty {
                 VStack(spacing: 12) {
                     Text("В альбоме нет фотографий")
@@ -203,7 +203,7 @@ struct AlbumDetailView: View {
             if selecting && !selectedIds.isEmpty {
                 HStack {
                     Text("\(selectedIds.count)")
-                        .font(.body.weight(.semibold))
+                        .font(.body.weight(.semibold)
                     Spacer()
                     Button(role: .destructive) {
                         Task { await removeSelected() }
@@ -222,7 +222,7 @@ struct AlbumDetailView: View {
         .sheet(isPresented: $showAdd) {
             NavigationStack {
                 ZStack {
-                    Color.lumenBg.ignoresSafeArea()
+                    LumenAtmosphere()
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 2) {
                             ForEach(library) { photo in
