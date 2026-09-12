@@ -138,63 +138,51 @@
 	}
 </script>
 
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="relative w-full">
 	{#if loading}
-		<div class="photo-grid">
+		<div class="photo-grid pt-14">
 			{#each Array(8) as _}
 				<div class="photo-tile skeleton-pulse"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<ErrorState message={error} onretry={loadAlbum} />
+		<div class="px-4 pt-20">
+			<ErrorState message={error} onretry={loadAlbum} />
+		</div>
 	{:else if album}
-		<div class="flex items-center gap-3 mb-6 flex-wrap">
-			{#if editing}
-				<form onsubmit={handleUpdate} class="flex gap-2 flex-1 min-w-[200px]">
-					<input
-						type="text"
-						bind:value={editName}
-						class="flex-1 h-10 px-3 bg-[var(--raised)] border border-[var(--hairline)] rounded-[6px] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-					/>
-					<button type="submit" class="h-10 px-3 bg-[var(--accent)] text-[var(--accent-ink)] rounded-[6px] text-sm"
-						>Сохранить</button
-					>
-					<button type="button" onclick={() => (editing = false)} class="h-10 px-3 text-[var(--muted)] text-sm"
-						>Отмена</button
-					>
-				</form>
-			{:else}
-				<h1 class="text-xl font-semibold flex-1 text-[var(--text)]">{album.name}</h1>
-				{#if !selectMode}
+		{#if editing}
+			<form onsubmit={handleUpdate} class="flex gap-2 flex-wrap px-3 pt-16 pb-3">
+				<input
+					type="text"
+					bind:value={editName}
+					class="flex-1 min-w-[160px] h-10 px-3 bg-[var(--raised)] border border-[var(--hairline)] rounded-[6px] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+				/>
+				<button type="submit" class="btn-primary">Сохранить</button>
+				<button type="button" onclick={() => (editing = false)} class="btn-ghost">Отмена</button>
+			</form>
+		{:else if !selectMode}
+			<div class="wall-toolbar" style="justify-content: space-between">
+				<span class="font-display text-base font-semibold text-[var(--text)] truncate max-w-[40%] pointer-events-none" style="text-shadow: 0 1px 6px rgba(0,0,0,.5)">{album.name}</span>
+				<div class="flex items-center gap-2">
 					<button
 						type="button"
 						onclick={() => {
 							selectMode = true;
 							selected = new Set();
 						}}
-						class="h-10 px-3 rounded-[6px] text-sm text-[var(--muted)] border border-[var(--hairline)]"
-						>Выбрать</button
+						class="btn-ghost">Выбрать</button
 					>
-					<button
-						type="button"
-						onclick={openAdd}
-						class="h-10 px-4 bg-[var(--accent)] text-[var(--accent-ink)] rounded-[6px] text-sm font-medium flex items-center gap-2"
-					>
+					<button type="button" onclick={openAdd} class="btn-primary">
 						<Icon name="plus" size={16} />
 						Добавить
 					</button>
-					<button
-						type="button"
-						onclick={() => (editing = true)}
-						class="h-10 px-3 text-[var(--muted)] hover:text-[var(--text)] text-sm rounded-[6px] hover:bg-[var(--raised)]"
-						>Изменить</button
-					>
-				{/if}
-			{/if}
-		</div>
+					<button type="button" onclick={() => (editing = true)} class="btn-ghost">Изменить</button>
+				</div>
+			</div>
+		{/if}
 
 		{#if album.photos && album.photos.length > 0}
-			<div class="photo-grid -mx-4 sm:mx-0">
+			<div class="photo-grid pt-14">
 				{#each album.photos as photo}
 					{@const isSel = selected.has(photo.id)}
 					<a
@@ -214,7 +202,7 @@
 						/>
 						{#if selectMode}
 							<span
-								class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full border flex items-center justify-center
+								class="absolute top-1.5 right-1.5 w-6 h-6 rounded-[6px] border flex items-center justify-center
 									{isSel
 									? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
 									: 'border-[var(--accent)] bg-black/40'}"
@@ -226,10 +214,12 @@
 				{/each}
 			</div>
 		{:else}
-			<EmptyState message="В альбоме нет фотографий" ctaLabel="Добавить" oncta={openAdd} />
+			<div class="pt-20">
+				<EmptyState message="В альбоме нет фотографий" ctaLabel="Добавить" oncta={openAdd} />
+			</div>
 		{/if}
 	{:else}
-		<div class="text-center py-20 text-[var(--muted)]">Альбом не найден</div>
+		<div class="text-center py-20 text-[var(--muted)] pt-20">Альбом не найден</div>
 	{/if}
 </div>
 
@@ -264,7 +254,7 @@
 					<button type="button" class="photo-tile" onclick={() => toggleLib(p.id)}>
 						<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
 						{#if librarySelected.has(p.id)}
-							<span class="absolute top-1 right-1 w-6 h-6 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] flex items-center justify-center">
+							<span class="absolute top-1 right-1 w-6 h-6 rounded-[6px] bg-[var(--accent)] text-[var(--accent-ink)] flex items-center justify-center">
 								<Icon name="check" size={14} />
 							</span>
 						{/if}
