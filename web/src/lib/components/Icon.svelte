@@ -29,8 +29,9 @@
 	let { name, size = 22, class: className = '' }: Props = $props();
 
 	const paths: Record<Name, string> = {
+		/* photo/grid stroke — not hamburger */
 		timeline:
-			'M4 6h16M4 12h16M4 18h10',
+			'M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z',
 		albums:
 			'M4 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7zm4-3h8a2 2 0 012 2v1',
 		heart:
