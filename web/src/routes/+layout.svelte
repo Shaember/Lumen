@@ -74,32 +74,35 @@
 
 {#if loading}
 	<div class="flex items-center justify-center min-h-screen bg-[var(--bg)]">
-		<div class="w-10 h-10 rounded-full border border-[var(--hairline)] skeleton-pulse" aria-hidden="true"></div>
+		<div class="w-10 h-10 rounded-[6px] border border-[var(--hairline)] skeleton-pulse" aria-hidden="true"></div>
 	</div>
 {:else if user && !isViewer}
-	<div class="min-h-screen flex flex-col bg-[var(--bg)] pb-14 md:pb-0">
-		<header class="sticky top-0 z-50 border-b border-[var(--hairline)] glass-chrome h-14">
-			<div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-				<a href="/photos" class="text-lg font-semibold tracking-tight text-[var(--text)]" style="letter-spacing: -0.02em"
+	<!-- Chrome overlays the photo wall so backdrop-blur actually blurs tiles -->
+	<div class="relative min-h-screen bg-[var(--bg)]">
+		<header class="fixed top-0 inset-x-0 z-50 h-14 border-b border-[var(--hairline)] glass-chrome">
+			<div class="px-3 sm:px-4 h-full flex items-center justify-between gap-3">
+				<a
+					href="/photos"
+					class="font-display text-lg font-semibold text-[var(--text)] shrink-0"
 					>Lumen</a
 				>
-				<nav class="hidden md:flex items-center gap-1">
+				<nav class="hidden md:flex items-center gap-0.5">
 					{#each navItems as item}
 						<a
 							href={item.href}
 							class="px-3 py-1.5 rounded-[6px] text-sm transition-colors duration-[160ms]
 								{isActive(item.href)
-								? 'bg-[var(--accent)] text-[var(--accent-ink)]'
-								: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)]'}"
+								? 'text-[var(--accent)] bg-[var(--raised-2)]/80'
+								: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)]/60'}"
 						>
 							{item.label}
 						</a>
 					{/each}
-					<div class="relative ml-2">
+					<div class="relative ml-1">
 						<button
 							type="button"
 							onclick={() => (menuOpen = !menuOpen)}
-							class="w-10 h-10 flex items-center justify-center rounded-[6px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)]"
+							class="w-10 h-10 flex items-center justify-center rounded-[6px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)]/60"
 							aria-label="Ещё"
 						>
 							<Icon name="more" size={20} />
@@ -122,7 +125,7 @@
 				</nav>
 				<button
 					type="button"
-					class="md:hidden w-10 h-10 flex items-center justify-center text-[var(--muted)]"
+					class="md:hidden w-10 h-10 flex items-center justify-center text-[var(--muted)] rounded-[6px]"
 					onclick={handleLogout}
 					aria-label="Выйти"
 				>
@@ -130,9 +133,12 @@
 				</button>
 			</div>
 		</header>
-		<main class="flex-1">
+
+		<!-- Full-bleed content scrolls under fixed chrome -->
+		<main class="min-h-screen pb-14 md:pb-0">
 			{@render children()}
 		</main>
+
 		<nav
 			class="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-[var(--hairline)] glass-chrome"
 			style="padding-bottom: env(safe-area-inset-bottom)"
@@ -142,11 +148,11 @@
 					<a
 						href={item.href}
 						class="flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors duration-[160ms]
-							{isActive(item.href) ? 'text-[var(--accent-ink)]' : 'text-[var(--muted)]'}"
+							{isActive(item.href) ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}"
 					>
 						<span
-							class="flex items-center justify-center w-8 h-8 rounded-full
-								{isActive(item.href) ? 'bg-[var(--accent)]' : ''}"
+							class="flex items-center justify-center w-8 h-8 rounded-[6px]
+								{isActive(item.href) ? 'bg-[var(--raised-2)] text-[var(--accent)] ring-1 ring-[var(--hairline)]' : ''}"
 						>
 							<Icon name={item.icon} size={20} />
 						</span>
