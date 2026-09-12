@@ -102,12 +102,17 @@ export async function login(username: string, password: string) {
 
 export async function logout() {
 	const refresh = tokens.getRefreshToken();
-	tokens.clear();
-	return request('/auth/logout', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ refresh_token: refresh })
-	});
+	try {
+		if (refresh) {
+			await request('/auth/logout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ refresh_token: refresh })
+			});
+		}
+	} finally {
+		tokens.clear();
+	}
 }
 
 export async function getMe() {
@@ -132,6 +137,18 @@ export async function listPhotos(month?: string, offset = 0, limit = 50): Promis
 	let url = `/photos?offset=${offset}&limit=${limit}`;
 	if (month) url += `&month=${month}`;
 	return request(url);
+}
+
+/** Page through the existing max-200 API without changing its contract. */
+export async function listAllPhotos(max = 5000): Promise<Photo[]> {
+	const pageSize = 200;
+	const all: Photo[] = [];
+	while (all.length < max) {
+		const batch = await listPhotos(undefined, all.length, Math.min(pageSize, max - all.length));
+		all.push(...batch);
+		if (batch.length < pageSize) break;
+	}
+	return all;
 }
 
 export async function getPhoto(id: number): Promise<Photo> {

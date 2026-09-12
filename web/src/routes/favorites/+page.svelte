@@ -1,58 +1,187 @@
 <script lang="ts">
-import { onMount } from 'svelte';
-	import { listPhotos, toggleFavorite, deletePhoto, photoUrl, type Photo } from '$lib/api/client';
+	import { onMount } from 'svelte';
+	import {
+		listAllPhotos,
+		toggleFavorite,
+		deletePhoto,
+		addPhotosToAlbum,
+		photoUrl,
+		type Photo
+	} from '$lib/api/client';
+	import AuthImage from '$lib/components/AuthImage.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import ErrorState from '$lib/components/ErrorState.svelte';
+	import SelectBar from '$lib/components/SelectBar.svelte';
+	import AlbumPicker from '$lib/components/AlbumPicker.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import { showToast } from '$lib/toast';
 
 	let photos = $state<Photo[]>([]);
 	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let selectMode = $state(false);
+	let selected = $state<Set<number>>(new Set());
+	let albumOpen = $state(false);
+	let confirmBulk = $state(false);
 
 	onMount(async () => {
-		try {
-			const all = await listPhotos();
-			photos = all.filter(p => p.is_favorite);
-		} catch (e) {
-			console.error('Failed to load favorites:', e);
-		}
-		loading = false;
+		await load();
 	});
 
+	async function load() {
+		loading = true;
+		error = null;
+		try {
+			const all = await listAllPhotos();
+			photos = all.filter((p) => p.is_favorite);
+		} catch (e: any) {
+			error = e?.message || 'Не удалось загрузить избранное';
+			photos = [];
+		}
+		loading = false;
+	}
+
 	async function handleUnfavorite(id: number) {
-		await toggleFavorite(id);
-		photos = photos.filter(p => p.id !== id);
+		try {
+			await toggleFavorite(id);
+			photos = photos.filter((p) => p.id !== id);
+		} catch (err: any) {
+			showToast(err?.message || 'Ошибка', 'danger');
+		}
+	}
+
+	function exitSelect() {
+		selectMode = false;
+		selected = new Set();
+	}
+
+	async function bulkFavorite() {
+		const ids = [...selected];
+		try {
+			for (const id of ids) await toggleFavorite(id);
+			photos = photos.filter((p) => !ids.includes(p.id));
+			showToast('Убрано из избранного', 'info');
+			exitSelect();
+		} catch (err: any) {
+			showToast(err?.message || 'Ошибка', 'danger');
+		}
+	}
+
+	async function bulkDelete() {
+		confirmBulk = false;
+		const ids = [...selected];
+		try {
+			for (const id of ids) await deletePhoto(id);
+			photos = photos.filter((p) => !ids.includes(p.id));
+			exitSelect();
+		} catch (err: any) {
+			showToast(err?.message || 'Ошибка', 'danger');
+		}
+	}
+
+	async function onAlbumPick(albumId: number) {
+		albumOpen = false;
+		try {
+			await addPhotosToAlbum(albumId, [...selected]);
+			showToast('Добавлено в альбом', 'success');
+			exitSelect();
+		} catch (err: any) {
+			showToast(err?.message || 'Ошибка', 'danger');
+		}
 	}
 </script>
 
-<div class="max-w-7xl mx-auto px-4 py-6">
-	<h1 class="text-xl font-semibold mb-6">Favorites</h1>
+<div class="relative w-full pt-14">
+	{#if photos.length > 0 && !selectMode}
+		<div class="wall-toolbar">
+			<button
+				type="button"
+				onclick={() => {
+					selectMode = true;
+					selected = new Set();
+				}}
+				class="btn-ghost">Выбрать</button
+			>
+		</div>
+	{/if}
 
 	{#if loading}
-		<div class="text-center py-20 text-[var(--text-secondary)]">Loading...</div>
+		<div class="photo-grid">
+			{#each Array(8) as _}
+				<div class="photo-tile skeleton-pulse"></div>
+			{/each}
+		</div>
+	{:else if error}
+		<div class="px-4 pt-6">
+			<ErrorState message={error} onretry={load} />
+		</div>
 	{:else if photos.length === 0}
-		<div class="text-center py-20 text-[var(--text-secondary)]">
-			<p class="text-lg mb-2">No favorites yet</p>
-			<p class="text-sm">Star photos in Timeline to add them here</p>
+		<div class="pt-6">
+			<EmptyState message="В избранном пока пусто" ctaLabel="К ленте" href="/photos" />
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+		<div class="photo-grid">
 			{#each photos as photo}
-				<div class="group relative aspect-square bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
-					<a href="/photos/{photo.id}">
-						<img
+				{@const isSel = selected.has(photo.id)}
+				<div class="photo-tile group">
+					<a
+						href={selectMode ? undefined : `/photos/${photo.id}`}
+						class="block w-full h-full"
+						onclick={(e) => {
+							if (selectMode) {
+								e.preventDefault();
+								const next = new Set(selected);
+								if (next.has(photo.id)) next.delete(photo.id);
+								else next.add(photo.id);
+								selected = next;
+							}
+						}}
+					>
+						<AuthImage
 							src={photoUrl(photo.id, true)}
 							alt={photo.filename}
-							loading="lazy"
 							class="w-full h-full object-cover"
 						/>
 					</a>
-					<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-						<button
-							onclick={() => handleUnfavorite(photo.id)}
-							class="w-8 h-8 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 text-sm"
+					{#if selectMode}
+						<span
+							class="absolute top-1.5 right-1.5 w-6 h-6 rounded-[6px] border flex items-center justify-center pointer-events-none
+								{isSel
+								? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
+								: 'border-[var(--accent)] bg-black/40'}"
 						>
-							⭐
+							{#if isSel}<Icon name="check" size={14} />{/if}
+						</span>
+					{:else}
+						<button
+							type="button"
+							onclick={() => handleUnfavorite(photo.id)}
+							class="absolute top-1.5 right-1.5 w-9 h-9 flex items-center justify-center rounded-[6px] bg-black/50 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-[160ms]"
+							aria-label="Убрать из избранного"
+						>
+							<Icon name="heart-fill" size={16} />
 						</button>
-					</div>
+					{/if}
 				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
+
+<SelectBar
+	count={selected.size}
+	oncancel={exitSelect}
+	onfavorite={bulkFavorite}
+	favoriteLabel="Убрать"
+	onalbum={() => (albumOpen = true)}
+	ondelete={() => (confirmBulk = true)}
+/>
+<AlbumPicker open={albumOpen} onpick={onAlbumPick} oncancel={() => (albumOpen = false)} />
+<ConfirmDialog
+	open={confirmBulk}
+	title="Удалить выбранные?"
+	message="Фотографии будут перемещены в корзину."
+	onconfirm={bulkDelete}
+	oncancel={() => (confirmBulk = false)}
+/>
