@@ -152,11 +152,13 @@
 	}
 
 	const idx = $derived(photo ? ids.indexOf(photo.id) : -1);
+	const canPrev = $derived(idx > 0);
+	const canNext = $derived(idx >= 0 && idx < ids.length - 1);
 </script>
 
 <div
 	role="presentation"
-	class="viewer fixed inset-0 z-[70] bg-[var(--viewer-bg)] flex flex-col"
+	class="viewer fixed inset-0 z-[70] bg-black flex flex-col"
 	ontouchstart={onTouchStart}
 	ontouchend={onTouchEnd}
 >
@@ -220,19 +222,19 @@
 		{#if loading}
 			<div class="w-24 h-24 skeleton-pulse rounded-[6px]"></div>
 		{:else if photo}
-			{#if idx > 0}
-				<button
-					type="button"
-					onclick={(e) => {
-						e.stopPropagation();
-						goPrev();
-					}}
-					class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
-					aria-label="Назад"
-				>
-					<Icon name="chevron-left" size={28} />
-				</button>
-			{/if}
+			<!-- Always show BOTH chevrons; disable at ends -->
+			<button
+				type="button"
+				onclick={(e) => {
+					e.stopPropagation();
+					goPrev();
+				}}
+				disabled={!canPrev}
+				class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px] disabled:opacity-25 disabled:pointer-events-none"
+				aria-label="Назад"
+			>
+				<Icon name="chevron-left" size={28} />
+			</button>
 			<div
 				class="max-h-[calc(100vh-9rem)] max-w-full transition-transform duration-[160ms] ease-out"
 				style="transform: scale({scale})"
@@ -244,19 +246,18 @@
 					loading="eager"
 				/>
 			</div>
-			{#if idx >= 0 && idx < ids.length - 1}
-				<button
-					type="button"
-					onclick={(e) => {
-						e.stopPropagation();
-						goNext();
-					}}
-					class="absolute right-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
-					aria-label="Вперёд"
-				>
-					<Icon name="chevron-right" size={28} />
-				</button>
-			{/if}
+			<button
+				type="button"
+				onclick={(e) => {
+					e.stopPropagation();
+					goNext();
+				}}
+				disabled={!canNext}
+				class="absolute right-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px] disabled:opacity-25 disabled:pointer-events-none"
+				aria-label="Вперёд"
+			>
+				<Icon name="chevron-right" size={28} />
+			</button>
 		{:else}
 			<div class="text-center px-4">
 				<p class="text-[var(--text)] text-lg mb-4">Снимок не найден</p>
@@ -271,24 +272,24 @@
 	</div>
 
 	{#if chromeVisible && filmstrip.length > 0 && photo}
-		<!-- 72px filmstrip under ~80px glass-fade bottom -->
-		<div class="relative shrink-0 h-[72px]">
-			<div class="absolute inset-x-0 bottom-0 h-20 glass-fade-bottom pointer-events-none -top-5"></div>
-			<div
-				class="relative h-[72px] overflow-x-auto flex items-center gap-0.5 px-2"
-			>
-				{#each filmstrip as p (p.id)}
-					<button
-						type="button"
-						onclick={() => goto(`/photos/${p.id}`)}
-						class="w-14 h-14 shrink-0 overflow-hidden rounded-[2px] {p.id === photo.id
-							? 'ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-black'
-							: 'opacity-70'}"
-						aria-label={p.filename}
-					>
-						<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
-					</button>
-				{/each}
+		<!-- Full-width bottom glass strip 72px with real thumbs; ~80px fade above -->
+		<div class="relative shrink-0">
+			<div class="absolute inset-x-0 bottom-full h-20 glass-fade-bottom pointer-events-none"></div>
+			<div class="relative h-[72px] w-full glass-chrome border-t border-[var(--hairline)]">
+				<div class="h-full overflow-x-auto flex items-center gap-0.5 px-2">
+					{#each filmstrip as p (p.id)}
+						<button
+							type="button"
+							onclick={() => goto(`/photos/${p.id}`)}
+							class="h-14 w-14 shrink-0 overflow-hidden rounded-[2px] {p.id === photo.id
+								? 'ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-black'
+								: 'opacity-70'}"
+							aria-label={p.filename}
+						>
+							<AuthImage src={photoUrl(p.id, true)} alt="" class="w-full h-full object-cover" />
+						</button>
+					{/each}
+				</div>
 			</div>
 		</div>
 	{/if}
