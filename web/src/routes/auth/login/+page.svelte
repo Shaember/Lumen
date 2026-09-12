@@ -76,16 +76,14 @@
 		}`;
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
-	<div class="w-full max-w-[360px]">
-		<div class="flex flex-col items-center mb-10">
-			<div class="mb-5 text-[var(--accent)]">
-				<Icon name="aperture" size={48} />
+<div class="min-h-screen flex items-center justify-center auth-canvas px-4 py-10">
+	<div class="w-full max-w-[380px] frost-panel p-6 sm:p-8">
+		<div class="flex flex-col items-center mb-8">
+			<div class="mb-4 text-[var(--accent)]">
+				<Icon name="aperture" size={44} />
 			</div>
-			<h1 class="text-3xl font-semibold text-[var(--text)] tracking-tight" style="letter-spacing: -0.02em">
-				Lumen
-			</h1>
-			<p class="text-sm text-[var(--muted)] mt-2">
+			<h1 class="font-display text-3xl font-semibold text-[var(--text)]">Lumen</h1>
+			<p class="text-sm text-[var(--muted)] mt-2 text-center">
 				{#if checkingSetup}
 					Проверка…
 				{:else if isSetup}
