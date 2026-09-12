@@ -1,23 +1,18 @@
 # package-lock.json
 
-## Preferred (reproducible)
+**Status on `fix/full-redesign`:** lockfile not committed (MCP payload size). Docker/Zima use:
 
-`web/package-lock.json.gz.b64` is a gzip+base64 of the npm lockfile (small enough for MCP sync).
-
-Dockerfiles decode it to `package-lock.json` then run `npm ci`.
-
-To expand locally:
-
-```bash
-base64 -d web/package-lock.json.gz.b64 | gunzip > web/package-lock.json
+```dockerfile
+COPY package.json ./
+COPY package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 ```
 
-Or generate fresh:
+Generate locally before a reproducible release:
 
 ```bash
 cd web && npm install
+# commit web/package-lock.json when git push credentials are available
 ```
 
-## Fallback
-
-If neither `package-lock.json` nor `package-lock.json.gz.b64` exists, Docker runs `npm install`.
+See also `docs/ZIMAOS_DEPLOY.md`.

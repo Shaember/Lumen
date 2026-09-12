@@ -2,11 +2,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package.json ./
-COPY package-lock.json.gz.b64* package-lock.json* ./
-RUN if [ -f package-lock.json.gz.b64 ]; then \
-      base64 -d package-lock.json.gz.b64 | gunzip > package-lock.json && npm ci; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    else npm install; fi
+COPY package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
 RUN npm run build

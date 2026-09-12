@@ -12,11 +12,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /lumen-server ./cmd/se
 FROM node:20-alpine AS web-builder
 WORKDIR /app
 COPY web/package.json ./
-COPY web/package-lock.json.gz.b64* web/package-lock.json* ./
-RUN if [ -f package-lock.json.gz.b64 ]; then \
-      base64 -d package-lock.json.gz.b64 | gunzip > package-lock.json && npm ci; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    else npm install; fi
+COPY web/package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY web/ .
 RUN npm run build
 
