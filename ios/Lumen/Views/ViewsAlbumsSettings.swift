@@ -203,7 +203,7 @@ struct AlbumDetailView: View {
             if selecting && !selectedIds.isEmpty {
                 HStack {
                     Text("\(selectedIds.count)")
-                        .font(.body.weight(.semibold)
+                        .font(.body.weight(.semibold))
                     Spacer()
                     Button(role: .destructive) {
                         Task { await removeSelected() }
