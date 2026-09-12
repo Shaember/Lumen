@@ -16,7 +16,7 @@ struct FavoritesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                LumenAtmosphere()
                 if isLoading {
                     LazyVGrid(columns: columns, spacing: 2) {
                         ForEach(0..<9, id: \.self) { _ in
@@ -63,7 +63,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                LumenAtmosphere()
                 List {
                     Section {
                         HStack {
