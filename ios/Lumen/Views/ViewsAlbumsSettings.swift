@@ -8,6 +8,11 @@ struct AlbumsListView: View {
     @State private var showingNewAlbum = false
     @State private var newAlbumName = ""
     
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -16,49 +21,37 @@ struct AlbumsListView: View {
                 if isLoading {
                     ProgressView().tint(Color.lumenAccent)
                 } else if albums.isEmpty {
-                    Text("Альбомов пока нет")
-                        .foregroundStyle(Color.lumenMuted)
+                    VStack(spacing: 12) {
+                        Text("Альбомов пока нет")
+                            .foregroundStyle(Color.lumenMuted)
+                        Button("Создать альбом") { showingNewAlbum = true }
+                            .foregroundStyle(Color.lumenAccent)
+                    }
                 } else {
-                    List {
-                        ForEach(albums) { album in
-                            NavigationLink(destination: AlbumDetailView(album: album)) {
-                                HStack(spacing: 12) {
-                                    if let coverId = album.coverPhotoId {
-                                        AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")) { image in
-                                            image.resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 60, height: 60)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        } placeholder: {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.lumenRaised)
-                                                .frame(width: 60, height: 60)
-                                        }
-                                    } else {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.lumenRaised)
-                                            .frame(width: 60, height: 60)
-                                            .overlay(
-                                                Image(systemName: "rectangle.stack")
-                                                    .foregroundStyle(Color.lumenAccent)
-                                            )
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(album.name).foregroundStyle(Color.lumenText)
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(albums) { album in
+                                NavigationLink(destination: AlbumDetailView(album: album)) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        AlbumMosaicCover(coverPhotoId: album.coverPhotoId, serverURL: serverURL)
+                                        Text(album.name)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(Color.lumenText)
+                                            .lineLimit(1)
                                         Text("\(album.photoCount ?? 0) фото")
-                                            .font(.subheadline)
+                                            .font(.caption)
                                             .foregroundStyle(Color.lumenMuted)
                                     }
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
+                        .padding(16)
                     }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle("Альбомы")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingNewAlbum = true }) {
@@ -88,6 +81,48 @@ struct AlbumsListView: View {
     
     private var serverURL: String {
         UserDefaults.standard.string(forKey: "server_url") ?? ""
+    }
+}
+
+/// 2×2 mosaic cover — no empty gray SaaS card.
+struct AlbumMosaicCover: View {
+    let coverPhotoId: Int64?
+    let serverURL: String
+    
+    var body: some View {
+        Group {
+            if let coverId = coverPhotoId {
+                let url = URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        AsyncImage(url: url) { image in
+                            image.resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                                .clipped()
+                        } placeholder: {
+                            Color.lumenRaised
+                        }
+                        .aspectRatio(1, contentMode: .fit)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.lumenHairline, lineWidth: 1)
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .foregroundStyle(Color.lumenHairline)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Image(systemName: "rectangle.stack")
+                            .foregroundStyle(Color.lumenMuted)
+                    )
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
