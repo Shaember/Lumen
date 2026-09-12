@@ -1,329 +1,190 @@
 import SwiftUI
 import Photos
 
-// MARK: - Timeline View
+enum TimelineSection: Identifiable {
+    case year(key: String, label: String)
+    case month(key: String, label: String, items: [Photo])
+    var id: String {
+        switch self {
+        case .year(let key, _): return "y-\(key)"
+        case .month(let key, _, _): return "m-\(key)"
+        }
+    }
+}
+
 struct TimelineView: View {
     @State private var photos: [Photo] = []
     @State private var isLoading = true
     @State private var selectedPhoto: Photo?
-    @State private var showTrash = false
-    
-    private let columns = [
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2)
-    ]
-    
-    private var sections: [(key: String, label: String, items: [Photo])] {
-        Self.groupByMonth(photos)
-    }
-    
+    @State private var loadError: String?
+    private let columns = [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)]
+    private var sections: [TimelineSection] { Self.buildSections(photos) }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 LumenAtmosphere()
-                
                 if isLoading {
-                    // Skeleton — no spinner in grid
                     LazyVGrid(columns: columns, spacing: 2) {
-                        ForEach(0..<12, id: \.self) { _ in
-                            Rectangle()
-                                .fill(Color.lumenRaised)
-                                .aspectRatio(1, contentMode: .fit)
-                        }
+                        ForEach(0..<12, id: \.self) { _ in Rectangle().fill(Color.lumenRaised).aspectRatio(1, contentMode: .fit) }
                     }
-                } else if photos.isEmpty {
+                } else if let loadError {
                     VStack(spacing: 12) {
-                        Text("Пока нет фотографий")
-                            .font(.body)
-                            .foregroundStyle(Color.lumenMuted)
-                    }
+                        Text(loadError).font(.body).foregroundStyle(Color.lumenDanger).multilineTextAlignment(.center)
+                        Button("Повторить") { Task { await loadPhotos() } }.foregroundStyle(Color.lumenAccent)
+                    }.padding()
+                } else if photos.isEmpty {
+                    Text("Пока нет фотографий").font(.body).foregroundStyle(Color.lumenMuted)
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            ForEach(sections, id: \.key) { section in
-                                Section {
-                                    LazyVGrid(columns: columns, spacing: 2) {
-                                        ForEach(section.items) { photo in
-                                            PhotoThumbnailView(photo: photo)
-                                                .onTapGesture { selectedPhoto = photo }
-                                        }
+                            ForEach(sections) { section in
+                                switch section {
+                                case .year(_, let label):
+                                    Section { EmptyView() } header: {
+                                        Text(label).font(.system(size: 32, weight: .semibold)).tracking(-0.4)
+                                            .foregroundStyle(Color.lumenText).shadow(color: .black.opacity(0.45), radius: 4, y: 1)
+                                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.bottom, 10)
+                                            .frame(height: 84, alignment: .bottom)
+                                            .background(LinearGradient(colors: [Color.lumenBg.opacity(0.75), Color.lumenBg.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom))
                                     }
-                                } header: {
-                                    Text(section.label)
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(Color.lumenText)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, 16)
-                                        .padding(.top, 10)
-                                        .padding(.bottom, 6)
-                                        .frame(minHeight: 72, alignment: .bottom)
-                                        .background(
-                                            LinearGradient(
-                                                colors: [Color.lumenBg.opacity(0.85), Color.lumenBg.opacity(0.35), .clear],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
+                                case .month(_, let label, let items):
+                                    Section {
+                                        LazyVGrid(columns: columns, spacing: 2) {
+                                            ForEach(items) { photo in
+                                                PhotoThumbnailView(photo: photo).clipShape(Rectangle()).onTapGesture { selectedPhoto = photo }
+                                            }
+                                        }
+                                    } header: {
+                                        Text(label).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.lumenText)
+                                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.vertical, 6)
+                                            .background(LinearGradient(colors: [Color.lumenBg.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom))
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("Фото")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Фото").navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        TrashView()
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundStyle(Color.lumenAccent)
-                    }
+                    NavigationLink { TrashView() } label: { Image(systemName: "trash").foregroundStyle(Color.lumenAccent) }
                     .accessibilityLabel("Корзина")
                 }
             }
-            .fullScreenCover(item: $selectedPhoto) { photo in
-                PhotoDetailView(photo: photo, allPhotos: photos)
-            }
+            .fullScreenCover(item: $selectedPhoto) { photo in PhotoDetailView(photo: photo, allPhotos: photos) }
             .task { await loadPhotos() }
         }
     }
-    
+
     private func loadPhotos() async {
-        do {
-            photos = try await APIClient.shared.listAllPhotos()
-        } catch {
-            print("Failed to load photos: \(error)")
-        }
+        isLoading = true; loadError = nil
+        do { photos = try await APIClient.shared.listAllPhotos() }
+        catch { loadError = error.localizedDescription }
         isLoading = false
     }
-    
-    static func groupByMonth(_ photos: [Photo]) -> [(key: String, label: String, items: [Photo])] {
-        let display = DateFormatter()
-        display.locale = Locale(identifier: "ru_RU")
-        display.dateFormat = "LLLL yyyy"
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+    static func buildSections(_ photos: [Photo]) -> [TimelineSection] {
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let isoBasic = ISO8601DateFormatter()
-        var map: [String: [Photo]] = [:]
-        var order: [String] = []
-        for p in photos {
-            let key: String
-            if let raw = p.takenAt ?? Optional(p.createdAt),
-               let date = iso.date(from: raw) ?? isoBasic.date(from: raw) ?? Self.parseLoose(raw) {
-                key = display.string(from: date)
-            } else {
-                key = "Без даты"
-            }
-            if map[key] == nil {
-                order.append(key)
-                map[key] = []
-            }
-            map[key]?.append(p)
+        let monthFmt = DateFormatter(); monthFmt.locale = Locale(identifier: "ru_RU"); monthFmt.dateFormat = "LLLL yyyy"
+        func date(of p: Photo) -> Date? {
+            guard let raw = p.takenAt ?? p.createdAt else { return nil }
+            return iso.date(from: raw) ?? isoBasic.date(from: raw)
         }
-        return order.map { (key: $0, label: $0.prefix(1).uppercased() + $0.dropFirst(), items: map[$0] ?? []) }
-    }
-    
-    private static func parseLoose(_ raw: String) -> Date? {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        if let d = f.date(from: raw) { return d }
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        if let d = f.date(from: raw) { return d }
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: String(raw.prefix(10)))
+        let sorted = photos.sorted { (date(of: $0)?.timeIntervalSince1970 ?? 0) > (date(of: $1)?.timeIntervalSince1970 ?? 0) }
+        var out: [TimelineSection] = []; var lastYear = ""; var lastMonth = ""; var bucket: [Photo] = []; var bucketLabel = ""; var bucketKey = ""
+        func flush() { guard !bucket.isEmpty else { return }; out.append(.month(key: bucketKey, label: bucketLabel, items: bucket)); bucket = [] }
+        for p in sorted {
+            let d = date(of: p)
+            let year = d.map { String(Calendar.current.component(.year, from: $0)) } ?? "unknown"
+            let monthKey: String; let monthLabel: String
+            if let d {
+                let m = Calendar.current.component(.month, from: d)
+                monthKey = "\(year)-\(String(format: "%02d", m))"
+                let raw = monthFmt.string(from: d); monthLabel = raw.prefix(1).uppercased() + raw.dropFirst()
+            } else { monthKey = "unknown"; monthLabel = "Без даты" }
+            if year != lastYear { flush(); lastYear = year; lastMonth = ""; out.append(.year(key: year, label: year == "unknown" ? "Без даты" : year)) }
+            if monthKey != lastMonth { flush(); lastMonth = monthKey; bucketKey = monthKey; bucketLabel = monthLabel }
+            bucket.append(p)
+        }
+        flush(); return out
     }
 }
 
-// MARK: - Trash View (from Photos toolbar)
 struct TrashView: View {
-    @State private var photos: [Photo] = []
-    @State private var isLoading = true
-    @State private var showEmptyStub = false
-    
-    private let columns = [
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2)
-    ]
-    
+    @State private var photos: [Photo] = []; @State private var isLoading = true; @State private var showEmptyStub = false
+    private let columns = [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)]
     var body: some View {
         ZStack {
             LumenAtmosphere()
-            if isLoading {
-                ProgressView().tint(Color.lumenAccent)
-            } else if photos.isEmpty {
-                Text("Корзина пуста")
-                    .foregroundStyle(Color.lumenMuted)
-            } else {
+            if isLoading { ProgressView().tint(Color.lumenAccent) }
+            else if photos.isEmpty { Text("Корзина пуста").foregroundStyle(Color.lumenMuted) }
+            else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 2) {
                         ForEach(photos) { photo in
-                            PhotoThumbnailView(photo: photo)
-                                .opacity(0.7)
-                                .onTapGesture {
-                                    Task {
-                                        try? await APIClient.shared.restorePhoto(id: photo.id)
-                                        photos.removeAll { $0.id == photo.id }
-                                    }
-                                }
+                            PhotoThumbnailView(photo: photo).opacity(0.7).onTapGesture {
+                                Task { try? await APIClient.shared.restorePhoto(id: photo.id); photos.removeAll { $0.id == photo.id } }
+                            }
                         }
                     }
                 }
             }
         }
-        .navigationTitle("Корзина")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Очистить") { showEmptyStub = true }
-                    .foregroundStyle(Color.lumenDanger)
-                    .disabled(photos.isEmpty)
-            }
-        }
-        .alert("Очистка корзины", isPresented: $showEmptyStub) {
-            Button("Понятно", role: .cancel) {}
-        } message: {
-            Text("API очистки корзины ещё нет (docs/API_GAPS.md).")
-        }
-        .task {
-            do {
-                photos = try await APIClient.shared.listTrash()
-            } catch {
-                photos = []
-            }
-            isLoading = false
-        }
+        .navigationTitle("Корзина").navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Очистить") { showEmptyStub = true }.foregroundStyle(Color.lumenDanger).disabled(photos.isEmpty) } }
+        .alert("Очистка корзины", isPresented: $showEmptyStub) { Button("Понятно", role: .cancel) {} } message: { Text("API очистки корзины ещё нет (docs/API_GAPS.md).") }
+        .task { do { photos = try await APIClient.shared.listTrash() } catch { photos = [] }; isLoading = false }
     }
 }
 
-// MARK: - Photo Thumbnail
-// NOTE: AsyncImage does not send Authorization — ATS / auth headers still broken for media.
 struct PhotoThumbnailView: View {
     let photo: Photo
-    
     var body: some View {
         GeometryReader { geo in
-            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(photo.id)/thumbnail")) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: geo.size.width)
-                        .clipped()
-                case .failure:
-                    Rectangle()
-                        .fill(Color.lumenRaised)
-                        .frame(width: geo.size.width, height: geo.size.width)
-                        .overlay(
-                            Text("не загрузилось")
-                                .font(.caption2)
-                                .foregroundStyle(Color.lumenMuted)
-                        )
-                default:
-                    Rectangle()
-                        .fill(Color.lumenRaised)
-                        .frame(width: geo.size.width, height: geo.size.width)
-                }
-            }
-        }
-        .aspectRatio(1, contentMode: .fit)
-    }
-    
-    private var serverURL: String {
-        UserDefaults.standard.string(forKey: "server_url") ?? ""
+            AuthImage(url: mediaURL(photo.id, thumb: true), contentMode: .fill)
+                .frame(width: geo.size.width, height: geo.size.width).clipped()
+        }.aspectRatio(1, contentMode: .fit)
     }
 }
 
-// MARK: - Photo Detail (immersive)
+func mediaURL(_ id: Int64, thumb: Bool) -> URL? {
+    let base = UserDefaults.standard.string(forKey: "server_url") ?? ""
+    return URL(string: "\(base)/api/v1/photos/\(id)/\(thumb ? "thumbnail" : "original")")
+}
+
 struct PhotoDetailView: View {
-    let photo: Photo
-    var allPhotos: [Photo] = []
+    let photo: Photo; var allPhotos: [Photo] = []
     @Environment(\.dismiss) private var dismiss
-    @State private var isFavorite = false
-    @State private var showingDeleteAlert = false
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var currentId: Int64 = 0
-    
+    @State private var isFavorite = false; @State private var showingDeleteAlert = false
+    @State private var scale: CGFloat = 1.0; @State private var lastScale: CGFloat = 1.0; @State private var currentId: Int64 = 0
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
-            AsyncImage(url: URL(string: "\(serverURL)/api/v1/photos/\(currentId)/original")) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in scale = lastScale * value }
-                                .onEnded { _ in lastScale = scale }
-                        )
-                        .onTapGesture(count: 2) {
-                            withAnimation(.easeOut(duration: 0.16)) {
-                                scale = 1.0
-                                lastScale = 1.0
-                            }
-                        }
-                case .failure:
-                    Text("не загрузилось")
-                        .foregroundStyle(Color.lumenMuted)
-                default:
-                    Rectangle().fill(Color.lumenRaised).frame(width: 80, height: 80)
-                }
-            }
+            AuthImage(url: mediaURL(currentId, thumb: false), contentMode: .fit)
+                .scaleEffect(scale)
+                .gesture(MagnificationGesture().onChanged { v in scale = lastScale * v }.onEnded { _ in lastScale = scale })
+                .onTapGesture(count: 2) { withAnimation(.easeOut(duration: 0.16)) { scale = 1.0; lastScale = 1.0 } }
         }
         .safeAreaInset(edge: .top) {
             HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .foregroundStyle(Color.lumenText)
-                        .frame(width: 44, height: 44)
-                }
+                Button { dismiss() } label: { Image(systemName: "xmark").foregroundStyle(Color.lumenText).frame(width: 44, height: 44) }
                 Spacer()
                 Button(action: toggleFavorite) {
                     Image(systemName: isFavorite ? "heart.fill" : "heart")
-                        .foregroundStyle(isFavorite ? Color.lumenDanger : Color.lumenText)
-                        .frame(width: 44, height: 44)
+                        .foregroundStyle(isFavorite ? Color.lumenAccent : Color.lumenText).frame(width: 44, height: 44)
                 }
-                Button { showingDeleteAlert = true } label: {
-                    Image(systemName: "trash")
-                        .foregroundStyle(Color.lumenText)
-                        .frame(width: 44, height: 44)
-                }
-            }
-            .padding(.horizontal, 8)
-            .background(.ultraThinMaterial)
+                Button { showingDeleteAlert = true } label: { Image(systemName: "trash").foregroundStyle(Color.lumenText).frame(width: 44, height: 44) }
+            }.padding(.horizontal, 8).background(.ultraThinMaterial)
         }
         .alert("Удалить фото?", isPresented: $showingDeleteAlert) {
             Button("Отмена", role: .cancel) {}
-            Button("Удалить", role: .destructive) {
-                Task {
-                    try? await APIClient.shared.deletePhoto(id: currentId)
-                    dismiss()
-                }
-            }
+            Button("Удалить", role: .destructive) { Task { try? await APIClient.shared.deletePhoto(id: currentId); dismiss() } }
         }
-        .onAppear {
-            currentId = photo.id
-            isFavorite = photo.isFavorite
-        }
+        .onAppear { currentId = photo.id; isFavorite = photo.isFavorite }
     }
-    
-    private func toggleFavorite() {
-        Task {
-            isFavorite = try await APIClient.shared.toggleFavorite(id: currentId)
-        }
-    }
-    
-    private var serverURL: String {
-        UserDefaults.standard.string(forKey: "server_url") ?? ""
-    }
+    private func toggleFavorite() { Task { if let v = try? await APIClient.shared.toggleFavorite(id: currentId) { isFavorite = v } } }
 }
