@@ -1,54 +1,108 @@
+# Lumen for ZimaOS / CasaOS App Store
+# Paste repo URL: https://github.com/Shaember/Lumen
+# Compose file path: zimaos/docker-compose.yml
+# Builds from this repo (no ghcr required). Host port 80 avoids clash with apps on :3000.
+
 x-casaos:
   architectures:
     - amd64
     - arm64
-  main: lumen
+  main: caddy
   author: Shaember
   category: Backup
-  description:
-    en_us: "Self-hosted personal photo backup and viewing system — an iCloud Photos replacement. Storage transparency: originals in human-readable folders, browsable via SMB."
-    ru_ru: "Самостоятельная система резервного копирования и просмотра фотографий — замена iCloud Photos. Прозрачность хранения: оригиналы в читаемых папках."
+  id: lumen
+  version: "1.0.0"
   developer: Shaember
-  icon: "https://raw.githubusercontent.com/Shaember/Lumen/main/ios/Lumen/Resources/Assets.xcassets/AppIcon.appiconset/icon.png"
-  tagline:
-    en_us: "Your photos, your server — self-hosted iCloud replacement"
-    ru_ru: "Ваши фото, ваш сервер — замена iCloud"
+  icon: https://raw.githubusercontent.com/Shaember/Lumen/fix/full-redesign/zimaos/icon.svg
   title:
     en_us: Lumen
     ru_ru: Lumen
+  tagline:
+    en_us: Your photos, your server — self-hosted iCloud replacement
+    ru_ru: Ваши фото, ваш сервер — замена iCloud
+  description:
+    en_us: "Self-hosted personal photo backup and viewing. Originals in human-readable folders under /DATA/Photos (SMB-friendly)."
+    ru_ru: "Самостоятельный бэкап и просмотр фото. Оригиналы в читаемых папках /DATA/Photos."
   tips:
     before_install:
       en_us: |
-        ## First Run
-        1. Open Lumen at http://YOUR_IP:3000
-        2. Create admin account (first-run wizard)
-        3. Upload photos via web UI or iOS app
-        
-        ## iOS App
-        Install from TestFlight or build from source.
-        Server URL: http://YOUR_IP:3000
-        
+        ## Before install
+        1. Set LUMEN_JWT_SECRET (openssl rand -hex 32).
+        2. Set LUMEN_CORS_ORIGIN to http://YOUR_ZIMAOS_IP (or your domain).
+        3. After install open http://YOUR_ZIMAOS_IP/ and create the admin account.
+
         ## Storage
-        Photos are stored at /DATA/Photos/ in human-readable folders:
-        /DATA/Photos/YYYY/YYYY-MM/YYYY-MM-DD_HHMMSS_name.ext
-        
-        Accessible via SMB/Samba without Lumen.
+        Originals: /DATA/Photos/YYYY/YYYY-MM/...
+        App DB/thumbs: /DATA/AppData/lumen/data
+
+        ## iOS
+        Server URL: http://YOUR_ZIMAOS_IP
+      ru_ru: |
+        ## Перед установкой
+        1. Задайте LUMEN_JWT_SECRET (openssl rand -hex 32).
+        2. LUMEN_CORS_ORIGIN = http://ВАШ_IP
+        3. Откройте http://ВАШ_IP/ и создайте админа.
+
+        ## Хранилище
+        Оригиналы: /DATA/Photos/
+        Данные приложения: /DATA/AppData/lumen/data
   index: /
-  port_map: "3000"
+  port_map: "80"
 
 services:
-  lumen:
-    image: ghcr.io/shaember/lumen:latest
-    container_name: lumen
+  caddy:
+    image: caddy:2-alpine
+    container_name: lumen-caddy
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - web
+    x-casaos:
+      ports:
+        - container: "80"
+          description:
+            en_us: Web UI + API
+            ru_ru: Веб-интерфейс и API
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: lumen-backend
+    restart: unless-stopped
     environment:
       - LUMEN_DATA_DIR=/data
       - LUMEN_DB_PATH=/data/lumen.db
-      - LUMEN_JWT_SECRET=${JWT_SECRET}
-      - LUMEN_PORT=3000
-      - LUMEN_CORS_ORIGIN=http://${IP}:${PORT}
+      - LUMEN_JWT_SECRET=${LUMEN_JWT_SECRET}
+      - LUMEN_PORT=8080
+      - LUMEN_CORS_ORIGIN=${LUMEN_CORS_ORIGIN:-http://localhost}
     volumes:
       - /DATA/AppData/lumen/data:/data
       - /DATA/Photos:/data/photos
+    expose:
+      - "8080"
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    container_name: lumen-web
+    restart: unless-stopped
+    environment:
+      - ORIGIN=${LUMEN_CORS_ORIGIN:-http://localhost}
+      - PORT=3000
+      - HOST=0.0.0.0
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:

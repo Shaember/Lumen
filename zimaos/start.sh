@@ -1,14 +1,10 @@
 #!/bin/sh
 set -e
-
-# Create data directories
 mkdir -p /data/photos /data/thumbs
-
-# Start backend in background
+export LUMEN_DATA_DIR="${LUMEN_DATA_DIR:-/data}"
+export LUMEN_DB_PATH="${LUMEN_DB_PATH:-/data/lumen.db}"
+export LUMEN_PORT="${LUMEN_PORT:-8080}"
 lumen-server &
-
-# Wait for backend to be ready
+cd /app/web && node build &
 sleep 2
-
-# Start Caddy
-caddy run --config /etc/caddy/Caddyfile
+exec caddy run --config /etc/caddy/Caddyfile
