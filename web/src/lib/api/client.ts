@@ -102,12 +102,17 @@ export async function login(username: string, password: string) {
 
 export async function logout() {
 	const refresh = tokens.getRefreshToken();
-	tokens.clear();
-	return request('/auth/logout', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ refresh_token: refresh })
-	});
+	try {
+		if (refresh) {
+			await request('/auth/logout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ refresh_token: refresh })
+			});
+		}
+	} finally {
+		tokens.clear();
+	}
 }
 
 export async function getMe() {
