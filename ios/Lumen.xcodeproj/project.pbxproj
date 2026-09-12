@@ -15,6 +15,8 @@
 		A4130F2612BDBC4795C2456C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625DC6AF78C317495677D7A6 /* Models.swift */; };
 		A59DAE7A15130BBB4C673140 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2317ADF4EC2B247523ED4D0C /* APIClient.swift */; };
 		E5BDE639DF61722F31F008A7 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659E4B22A5668839018136B2 /* SyncManager.swift */; };
+		C2B0D1E2F30415263748596A /* AuthImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A9C0D1E2F3041526374859 /* AuthImage.swift */; };
+		E4D2F30415263748596A7B8C /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C1E2F30415263748596A7B /* Keychain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +30,8 @@
 		A653D3312ACE222C5D1B1CC9 /* ViewsTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewsTimeline.swift; sourceTree = "<group>"; };
 		CB36F4730FD87DC2352B95F9 /* ViewsAlbumsSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewsAlbumsSettings.swift; sourceTree = "<group>"; };
 		93A90F8E411E1F12D0297381 /* ViewsFavoritesSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewsFavoritesSettings.swift; sourceTree = "<group>"; };
+		B1A9C0D1E2F3041526374859 /* AuthImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthImage.swift; sourceTree = "<group>"; };
+		D3C1E2F30415263748596A7B /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -51,6 +55,8 @@
 			isa = PBXGroup;
 			children = (
 				2317ADF4EC2B247523ED4D0C /* APIClient.swift */,
+				B1A9C0D1E2F3041526374859 /* AuthImage.swift */,
+				D3C1E2F30415263748596A7B /* Keychain.swift */,
 				659E4B22A5668839018136B2 /* SyncManager.swift */,
 			);
 			path = Services;
@@ -163,6 +169,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A59DAE7A15130BBB4C673140 /* APIClient.swift in Sources */,
+				C2B0D1E2F30415263748596A /* AuthImage.swift in Sources */,
+				E4D2F30415263748596A7B8C /* Keychain.swift in Sources */,
 				773FA1361E95D40DD6310993 /* LumenApp.swift in Sources */,
 				A4130F2612BDBC4795C2456C /* Models.swift in Sources */,
 				E5BDE639DF61722F31F008A7 /* SyncManager.swift in Sources */,
@@ -221,7 +229,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -304,7 +312,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
