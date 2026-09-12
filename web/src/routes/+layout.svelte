@@ -47,6 +47,13 @@
 		}
 	});
 
+	/* Toggle viewer-mode on body: pure #000, no grain/wash */
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		document.body.classList.toggle('viewer-mode', isViewer);
+		return () => document.body.classList.remove('viewer-mode');
+	});
+
 	const navItems = [
 		{ href: '/photos', label: 'Лента', icon: 'timeline' as const },
 		{ href: '/albums', label: 'Альбомы', icon: 'albums' as const },
@@ -73,12 +80,12 @@
 </script>
 
 {#if loading}
-	<div class="flex items-center justify-center min-h-screen bg-[var(--bg)]">
+	<div class="flex items-center justify-center min-h-screen">
 		<div class="w-10 h-10 rounded-[6px] border border-[var(--hairline)] skeleton-pulse" aria-hidden="true"></div>
 	</div>
 {:else if user && !isViewer}
-	<!-- Chrome overlays the photo wall so backdrop-blur actually blurs tiles -->
-	<div class="relative min-h-screen bg-[var(--bg)]">
+	<!-- Transparent shell: body washes + grain show through; glass chrome overlays tiles -->
+	<div class="app-shell">
 		<header class="fixed top-0 inset-x-0 z-50 h-14 border-b border-[var(--hairline)] glass-chrome">
 			<div class="px-3 sm:px-4 h-full flex items-center justify-between gap-3">
 				<a
@@ -90,10 +97,7 @@
 					{#each navItems as item}
 						<a
 							href={item.href}
-							class="px-3 py-1.5 rounded-[6px] text-sm transition-colors duration-[160ms]
-								{isActive(item.href)
-								? 'text-[var(--accent)] bg-[var(--raised-2)]/80'
-								: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)]/60'}"
+							class="nav-tab {isActive(item.href) ? 'active' : ''}"
 						>
 							{item.label}
 						</a>
@@ -134,7 +138,7 @@
 			</div>
 		</header>
 
-		<!-- Full-bleed content scrolls under fixed chrome -->
+		<!-- Full-bleed content scrolls under fixed chrome; pt via sticky top offsets -->
 		<main class="min-h-screen pb-14 md:pb-0">
 			{@render children()}
 		</main>
@@ -148,15 +152,15 @@
 					<a
 						href={item.href}
 						class="flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors duration-[160ms]
-							{isActive(item.href) ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}"
+							{isActive(item.href) ? 'text-[var(--accent-ink)]' : 'text-[var(--muted)]'}"
 					>
 						<span
 							class="flex items-center justify-center w-8 h-8 rounded-[6px]
-								{isActive(item.href) ? 'bg-[var(--raised-2)] text-[var(--accent)] ring-1 ring-[var(--hairline)]' : ''}"
+								{isActive(item.href) ? 'bg-[var(--accent)] text-[var(--accent-ink)]' : ''}"
 						>
 							<Icon name={item.icon} size={20} />
 						</span>
-						{item.label}
+						<span class={isActive(item.href) ? 'text-[var(--accent)]' : ''}>{item.label}</span>
 					</a>
 				{/each}
 			</div>
