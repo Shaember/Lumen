@@ -20,8 +20,10 @@ Non-breaking UI stubs are in place. Do **not** invent endpoints without CoS/user
 
 ## iOS platform gaps (not API)
 
-1. **AsyncImage + Authorization** — thumbnails/originals loaded via `AsyncImage` without Bearer token → 401 on protected media. Need authenticated image loader (URLSession + cache) parity with web `AuthImage`.
-2. **ATS** — `NSAllowsLocalNetworking` added for LAN/dev. Non-local cleartext `http://` hosts still need TLS or a broader exception.
+1. ~~AsyncImage + Authorization~~ — **fixed:** `AuthImage` (URLSession + Bearer from Keychain token store + cache).
+2. **ATS** — `NSAllowsLocalNetworking` for LAN/dev. Non-LAN cleartext `http://` still blocked — use https or LAN IP.
+3. Tokens in **Keychain** (migrates legacy UserDefaults once).
+4. Refresh / upload / createAlbum / registerDevice decode shapes match backend partial payloads.
 
 ## Suggested endpoints (approval required)
 
