@@ -86,87 +86,94 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            // Subtle canvas so frost panel glass has something to blur
+            LinearGradient(
+                colors: [Color.lumenBg, Color.lumenRaised.opacity(0.85), Color.lumenBg],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
-            VStack(spacing: 0) {
+            VStack {
                 Spacer()
-                
-                VStack(spacing: 12) {
-                    Image(systemName: "camera.aperture")
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundStyle(Color.lumenAccent)
+                VStack(spacing: 16) {
+                    VStack(spacing: 10) {
+                        Image(systemName: "camera.aperture")
+                            .font(.system(size: 40, weight: .light))
+                            .foregroundStyle(Color.lumenAccent)
+                        
+                        Text("Lumen")
+                            .font(.system(size: 32, weight: .semibold, design: .default))
+                            .foregroundStyle(Color.lumenText)
+                            .tracking(-0.5)
+                        
+                        Text(isSetup ? "Создайте учётную запись" : "Your photos, your server")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.lumenMuted)
+                            .multilineTextAlignment(.center)
+                    }
                     
-                    Text("Lumen")
-                        .font(.system(size: 34, weight: .semibold))
-                        .foregroundStyle(Color.lumenText)
-                        .tracking(-0.5)
+                    VStack(spacing: 10) {
+                        fieldRow(icon: "globe", field: .server) {
+                            TextField("Адрес сервера", text: $serverURL)
+                                .textFieldStyle(.plain)
+                                .textInputAutocapitalization(.never)
+                                .disableAutocorrection(true)
+                                .keyboardType(.URL)
+                                .foregroundStyle(Color.lumenText)
+                                .focused($focusedField, equals: .server)
+                        }
+                        
+                        fieldRow(icon: "person", field: .username) {
+                            TextField("Имя пользователя", text: $username)
+                                .textFieldStyle(.plain)
+                                .textInputAutocapitalization(.never)
+                                .disableAutocorrection(true)
+                                .foregroundStyle(Color.lumenText)
+                                .focused($focusedField, equals: .username)
+                        }
+                        
+                        fieldRow(icon: "lock", field: .password) {
+                            SecureField("Пароль", text: $password)
+                                .textFieldStyle(.plain)
+                                .foregroundStyle(Color.lumenText)
+                                .focused($focusedField, equals: .password)
+                        }
+                    }
                     
-                    Text(isSetup ? "Создайте учётную запись" : "Your photos, your server")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.lumenMuted)
+                    if !error.isEmpty {
+                        Text(error)
+                            .foregroundStyle(Color.lumenDanger)
+                            .font(.caption)
+                    }
+                    
+                    Button(action: handleLogin) {
+                        Text(isSetup ? "Создать аккаунт" : "Войти")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(Color.lumenAccent)
+                            .foregroundStyle(Color.lumenAccentInk)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .disabled(auth.isLoading || username.isEmpty || password.isEmpty)
+                    .opacity(auth.isLoading || username.isEmpty || password.isEmpty ? 0.4 : 1)
+                    
+                    Button(isSetup ? "Уже есть аккаунт? Войти" : "Первый раз? Создать аккаунт") {
+                        isSetup.toggle()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(Color.lumenAccent)
                 }
-                .padding(.bottom, 40)
-                
-                VStack(spacing: 12) {
-                    fieldRow(icon: "globe", field: .server) {
-                        TextField("Адрес сервера", text: $serverURL)
-                            .textFieldStyle(.plain)
-                            .textInputAutocapitalization(.never)
-                            .disableAutocorrection(true)
-                            .keyboardType(.URL)
-                            .foregroundStyle(Color.lumenText)
-                            .focused($focusedField, equals: .server)
-                    }
-                    
-                    fieldRow(icon: "person", field: .username) {
-                        TextField("Имя пользователя", text: $username)
-                            .textFieldStyle(.plain)
-                            .textInputAutocapitalization(.never)
-                            .disableAutocorrection(true)
-                            .foregroundStyle(Color.lumenText)
-                            .focused($focusedField, equals: .username)
-                    }
-                    
-                    fieldRow(icon: "lock", field: .password) {
-                        SecureField("Пароль", text: $password)
-                            .textFieldStyle(.plain)
-                            .foregroundStyle(Color.lumenText)
-                            .focused($focusedField, equals: .password)
-                    }
-                }
-                .padding(.horizontal, 20)
+                .padding(20)
                 .frame(maxWidth: 360)
-                
-                if !error.isEmpty {
-                    Text(error)
-                        .foregroundStyle(Color.lumenDanger)
-                        .font(.caption)
-                        .padding(.top, 12)
-                }
-                
-                Button(action: handleLogin) {
-                    Text(isSetup ? "Создать аккаунт" : "Войти")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.lumenAccent)
-                        .foregroundStyle(Color.lumenAccentInk)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.lumenHairline, lineWidth: 1)
+                )
                 .padding(.horizontal, 20)
-                .frame(maxWidth: 360)
-                .padding(.top, 20)
-                .disabled(auth.isLoading || username.isEmpty || password.isEmpty)
-                .opacity(auth.isLoading || username.isEmpty || password.isEmpty ? 0.4 : 1)
-                
-                Button(isSetup ? "Уже есть аккаунт? Войти" : "Первый раз? Создать аккаунт") {
-                    isSetup.toggle()
-                }
-                .font(.caption)
-                .foregroundStyle(Color.lumenAccent)
-                .padding(.top, 16)
-                
-                Spacer()
                 Spacer()
             }
         }
