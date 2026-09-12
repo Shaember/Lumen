@@ -167,7 +167,8 @@
 />
 
 <!-- Full-bleed photo wall — no max-width, no SaaS page title -->
-<div class="relative w-full">
+<!-- content starts below fixed chrome -->
+<div class="relative w-full pt-14">
 	{#if !selectMode}
 		<div class="wall-toolbar">
 			<button type="button" onclick={enterSelect} class="btn-ghost">Выбрать</button>
@@ -191,17 +192,17 @@
 	{/if}
 
 	{#if loading}
-		<div class="photo-grid pt-14">
+		<div class="photo-grid">
 			{#each Array(12) as _}
 				<div class="photo-tile skeleton-pulse"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="px-4 pt-20">
+		<div class="px-4 pt-6">
 			<ErrorState message={error} onretry={loadPhotos} />
 		</div>
 	{:else if photos.length === 0}
-		<div class="pt-20">
+		<div class="pt-6">
 			<EmptyState message="Пока нет фотографий" ctaLabel="Загрузить" oncta={() => fileInput?.click()} />
 		</div>
 	{:else}
