@@ -92,7 +92,7 @@
 	}
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full pt-14">
 	{#if photos.length > 0 && !selectMode}
 		<div class="wall-toolbar">
 			<button
@@ -107,21 +107,21 @@
 	{/if}
 
 	{#if loading}
-		<div class="photo-grid pt-14">
+		<div class="photo-grid">
 			{#each Array(8) as _}
 				<div class="photo-tile skeleton-pulse"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="px-4 pt-20">
+		<div class="px-4 pt-6">
 			<ErrorState message={error} onretry={load} />
 		</div>
 	{:else if photos.length === 0}
-		<div class="pt-20">
+		<div class="pt-6">
 			<EmptyState message="В избранном пока пусто" ctaLabel="К ленте" href="/photos" />
 		</div>
 	{:else}
-		<div class="photo-grid pt-14">
+		<div class="photo-grid">
 			{#each photos as photo}
 				{@const isSel = selected.has(photo.id)}
 				<div class="photo-tile group">
