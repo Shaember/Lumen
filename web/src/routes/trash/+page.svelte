@@ -65,7 +65,7 @@
 	}
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full pt-14">
 	<div class="wall-toolbar">
 		{#if photos.length > 0 && !selectMode}
 			<button
@@ -85,21 +85,21 @@
 	</div>
 
 	{#if loading}
-		<div class="photo-grid pt-14">
+		<div class="photo-grid">
 			{#each Array(6) as _}
 				<div class="photo-tile skeleton-pulse opacity-70"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="px-4 pt-20">
+		<div class="px-4 pt-6">
 			<ErrorState message={error} onretry={loadTrash} />
 		</div>
 	{:else if photos.length === 0}
-		<div class="pt-20">
+		<div class="pt-6">
 			<EmptyState message="Корзина пуста" />
 		</div>
 	{:else}
-		<div class="photo-grid pt-14">
+		<div class="photo-grid">
 			{#each photos as photo}
 				{@const isSel = selected.has(photo.id)}
 				<div class="photo-tile opacity-70 hover:opacity-100 transition-opacity duration-[160ms] group">
@@ -138,8 +138,8 @@
 								onclick={() => handleRestore(photo.id)}
 								class="h-10 px-4 bg-[var(--accent)] text-[var(--accent-ink)] rounded-[6px] text-sm font-medium flex items-center gap-2"
 							>
-								<Icon name="restore" size={16} />
-								Восстановить
+									<Icon name="restore" size={16} />
+									Восстановить
 							</button>
 						</div>
 					{/if}
