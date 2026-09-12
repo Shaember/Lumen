@@ -11,8 +11,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /lumen-server ./cmd/se
 
 FROM node:20-alpine AS web-builder
 WORKDIR /app
-COPY web/package.json web/package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY web/package.json ./
+COPY web/package-lock.json.gz.b64* web/package-lock.json* ./
+RUN if [ -f package-lock.json.gz.b64 ]; then \
+      base64 -d package-lock.json.gz.b64 | gunzip > package-lock.json && npm ci; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    else npm install; fi
 COPY web/ .
 RUN npm run build
 
@@ -28,6 +32,6 @@ COPY zimaos/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 EXPOSE 80
 ENV LUMEN_PORT=8080
-ENV LUMEN_DATA_DIR=/data
-ENV LUMEN_PHOTOS_DIR=/photos
+ENV PORT=3000
+ENV HOST=0.0.0.0
 CMD ["/app/start.sh"]
