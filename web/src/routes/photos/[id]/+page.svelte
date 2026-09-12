@@ -251,7 +251,7 @@
 						e.stopPropagation();
 						goNext();
 					}}
-					class="absolute left-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
+					class="absolute right-1 z-10 w-11 h-11 flex items-center justify-center text-[var(--text)]/80 hover:text-[var(--text)] rounded-[6px]"
 					aria-label="Вперёд"
 				>
 					<Icon name="chevron-right" size={28} />
