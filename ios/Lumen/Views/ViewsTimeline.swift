@@ -51,12 +51,20 @@ struct TimelineView: View {
                                     }
                                 } header: {
                                     Text(section.label)
-                                        .font(.title2.weight(.semibold))
+                                        .font(.system(size: 22, weight: .semibold))
                                         .foregroundStyle(Color.lumenText)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(.horizontal, 16)
-                                        .padding(.vertical, 8)
-                                        .background(.ultraThinMaterial.opacity(0.9))
+                                        .padding(.top, 10)
+                                        .padding(.bottom, 6)
+                                        .frame(minHeight: 72, alignment: .bottom)
+                                        .background(
+                                            LinearGradient(
+                                                colors: [Color.lumenBg.opacity(0.85), Color.lumenBg.opacity(0.35), .clear],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
                                 }
                             }
                         }
@@ -64,7 +72,7 @@ struct TimelineView: View {
                 }
             }
             .navigationTitle("Фото")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
