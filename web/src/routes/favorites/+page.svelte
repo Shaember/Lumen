@@ -92,34 +92,36 @@
 	}
 </script>
 
-<div class="max-w-7xl mx-auto px-4 py-6">
-	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-xl font-semibold text-[var(--text)]">Избранное</h1>
-		{#if photos.length > 0 && !selectMode}
+<div class="relative w-full">
+	{#if photos.length > 0 && !selectMode}
+		<div class="wall-toolbar">
 			<button
 				type="button"
 				onclick={() => {
 					selectMode = true;
 					selected = new Set();
 				}}
-				class="h-10 px-3 rounded-[6px] text-sm text-[var(--muted)] border border-[var(--hairline)]"
-				>Выбрать</button
+				class="btn-ghost">Выбрать</button
 			>
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	{#if loading}
-		<div class="photo-grid -mx-4 sm:mx-0">
+		<div class="photo-grid pt-14">
 			{#each Array(8) as _}
 				<div class="photo-tile skeleton-pulse"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<ErrorState message={error} onretry={load} />
+		<div class="px-4 pt-20">
+			<ErrorState message={error} onretry={load} />
+		</div>
 	{:else if photos.length === 0}
-		<EmptyState message="В избранном пока пусто" ctaLabel="К ленте" href="/photos" />
+		<div class="pt-20">
+			<EmptyState message="В избранном пока пусто" ctaLabel="К ленте" href="/photos" />
+		</div>
 	{:else}
-		<div class="photo-grid -mx-4 sm:mx-0">
+		<div class="photo-grid pt-14">
 			{#each photos as photo}
 				{@const isSel = selected.has(photo.id)}
 				<div class="photo-tile group">
@@ -144,7 +146,7 @@
 					</a>
 					{#if selectMode}
 						<span
-							class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full border flex items-center justify-center pointer-events-none
+							class="absolute top-1.5 right-1.5 w-6 h-6 rounded-[6px] border flex items-center justify-center pointer-events-none
 								{isSel
 								? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
 								: 'border-[var(--accent)] bg-black/40'}"
@@ -155,7 +157,7 @@
 						<button
 							type="button"
 							onclick={() => handleUnfavorite(photo.id)}
-							class="absolute top-1.5 right-1.5 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-[160ms]"
+							class="absolute top-1.5 right-1.5 w-9 h-9 flex items-center justify-center rounded-[6px] bg-black/50 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-[160ms]"
 							aria-label="Убрать из избранного"
 						>
 							<Icon name="heart-fill" size={16} />

@@ -65,46 +65,41 @@
 	}
 </script>
 
-<div class="max-w-7xl mx-auto px-4 py-6">
-	<div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-		<h1 class="text-xl font-semibold text-[var(--text)]">Корзина</h1>
-		<div class="flex gap-2">
-			{#if photos.length > 0 && !selectMode}
-				<button
-					type="button"
-					onclick={() => {
-						selectMode = true;
-						selected = new Set();
-					}}
-					class="h-10 px-3 rounded-[6px] text-sm text-[var(--muted)] border border-[var(--hairline)]"
-					>Выбрать</button
-				>
-			{/if}
-			{#if photos.length > 0}
-				<button
-					type="button"
-					onclick={() => (emptyConfirm = true)}
-					class="h-10 px-3 rounded-[6px] text-sm text-[var(--danger)] border border-[var(--hairline)]"
-				>
-					Очистить корзину
-				</button>
-			{/if}
-		</div>
+<div class="relative w-full">
+	<div class="wall-toolbar">
+		{#if photos.length > 0 && !selectMode}
+			<button
+				type="button"
+				onclick={() => {
+					selectMode = true;
+					selected = new Set();
+				}}
+				class="btn-ghost">Выбрать</button
+			>
+		{/if}
+		{#if photos.length > 0}
+			<button type="button" onclick={() => (emptyConfirm = true)} class="btn-ghost" style="color: var(--danger)">
+				Очистить
+			</button>
+		{/if}
 	</div>
-	<p class="text-xs text-[var(--muted)] mb-6">Восстановление доступно. Срок хранения 30 дней — когда появится API.</p>
 
 	{#if loading}
-		<div class="photo-grid -mx-4 sm:mx-0">
+		<div class="photo-grid pt-14">
 			{#each Array(6) as _}
 				<div class="photo-tile skeleton-pulse opacity-70"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<ErrorState message={error} onretry={loadTrash} />
+		<div class="px-4 pt-20">
+			<ErrorState message={error} onretry={loadTrash} />
+		</div>
 	{:else if photos.length === 0}
-		<EmptyState message="Корзина пуста" />
+		<div class="pt-20">
+			<EmptyState message="Корзина пуста" />
+		</div>
 	{:else}
-		<div class="photo-grid -mx-4 sm:mx-0">
+		<div class="photo-grid pt-14">
 			{#each photos as photo}
 				{@const isSel = selected.has(photo.id)}
 				<div class="photo-tile opacity-70 hover:opacity-100 transition-opacity duration-[160ms] group">
@@ -126,7 +121,7 @@
 							aria-label="Выбрать"
 						>
 							<span
-								class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full border flex items-center justify-center
+								class="absolute top-1.5 right-1.5 w-6 h-6 rounded-[6px] border flex items-center justify-center
 									{isSel
 									? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
 									: 'border-[var(--accent)] bg-black/40'}"
@@ -155,11 +150,17 @@
 
 	{#if selectMode && selected.size > 0}
 		<div
-			class="fixed left-0 right-0 bottom-0 md:bottom-0 z-60 glass-chrome border-t border-[var(--hairline)] flex items-center gap-3 px-4 py-3"
+			class="fixed left-0 right-0 z-60 glass-chrome border-t border-[var(--hairline)] flex items-center gap-3 px-4 py-3 trash-select-bar"
 			style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
-			class:bottom-tab={true}
 		>
-			<button type="button" class="text-sm text-[var(--muted)]" onclick={() => { selectMode = false; selected = new Set(); }}>Отмена</button>
+			<button
+				type="button"
+				class="text-sm text-[var(--muted)]"
+				onclick={() => {
+					selectMode = false;
+					selected = new Set();
+				}}>Отмена</button
+			>
 			<span class="text-sm font-semibold">{selected.size}</span>
 			<button
 				type="button"
@@ -184,9 +185,12 @@
 />
 
 <style>
+	.trash-select-bar {
+		bottom: 0;
+	}
 	@media (max-width: 767px) {
-		:global(.bottom-tab) {
-			bottom: 56px !important;
+		.trash-select-bar {
+			bottom: 56px;
 		}
 	}
 </style>
