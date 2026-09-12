@@ -166,100 +166,97 @@
 	ondrop={onDrop}
 />
 
-<div class="max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6 relative">
-	<div class="flex items-center justify-between px-4 sm:px-0 mb-4">
-		<h1 class="text-xl font-semibold text-[var(--text)]">Лента</h1>
-		<div class="flex items-center gap-2">
-			{#if !selectMode}
-				<button
-					type="button"
-					onclick={enterSelect}
-					class="h-10 px-3 rounded-[6px] text-sm text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--raised)] border border-[var(--hairline)]"
-				>
-					Выбрать
-				</button>
-				<button
-					type="button"
-					onclick={() => fileInput?.click()}
-					disabled={uploading}
-					class="h-10 px-4 bg-[var(--accent)] text-[var(--accent-ink)] rounded-[6px] text-sm font-medium disabled:opacity-40 flex items-center gap-2"
-				>
-					<Icon name="upload" size={18} />
-					{uploading ? 'Загрузка…' : 'Загрузить'}
-				</button>
-			{/if}
+<!-- Full-bleed photo wall — no max-width, no SaaS page title -->
+<div class="relative w-full">
+	{#if !selectMode}
+		<div class="wall-toolbar">
+			<button type="button" onclick={enterSelect} class="btn-ghost">Выбрать</button>
+			<button
+				type="button"
+				onclick={() => fileInput?.click()}
+				disabled={uploading}
+				class="btn-primary"
+			>
+				<Icon name="upload" size={18} />
+				{uploading ? 'Загрузка…' : 'Загрузить'}
+			</button>
 			<input bind:this={fileInput} type="file" accept="image/*" multiple class="hidden" onchange={onFileInput} />
 		</div>
-	</div>
+	{/if}
 
 	{#if uploading}
-		<div class="mx-4 sm:mx-0 mb-3 h-0.5 bg-[var(--raised)] overflow-hidden rounded-full">
+		<div class="fixed top-14 inset-x-0 z-[45] h-0.5 bg-[var(--raised)] overflow-hidden">
 			<div class="h-full bg-[var(--accent)] transition-all duration-[160ms]" style="width: {uploadProgress * 100}%"></div>
 		</div>
 	{/if}
 
 	{#if loading}
-		<div class="photo-grid px-0">
+		<div class="photo-grid pt-14">
 			{#each Array(12) as _}
 				<div class="photo-tile skeleton-pulse"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="px-4">
+		<div class="px-4 pt-20">
 			<ErrorState message={error} onretry={loadPhotos} />
 		</div>
 	{:else if photos.length === 0}
-		<EmptyState message="Пока нет фотографий" ctaLabel="Загрузить" oncta={() => fileInput?.click()} />
+		<div class="pt-20">
+			<EmptyState message="Пока нет фотографий" ctaLabel="Загрузить" oncta={() => fileInput?.click()} />
+		</div>
 	{:else}
 		{#each sections as section (section.key)}
 			{#if section.kind === 'year'}
-				<div class="sticky top-14 z-20 px-4 py-2 glass-chrome border-b border-[var(--hairline)]">
-					<h2 class="text-[28px] sm:text-[32px] font-semibold tracking-tight text-[var(--text)]" style="letter-spacing: -0.02em">
-						{section.label}
-					</h2>
+				<div class="year-sticky font-display">
+					<h2>{section.label}</h2>
 				</div>
 			{:else if section.kind === 'month'}
-				<div class="sticky top-[4.5rem] z-10 px-4 py-1.5 glass-chrome">
-					<h3 class="text-lg font-semibold text-[var(--text)]">{section.label}</h3>
+				<div class="month-sticky">
+					<h3>{section.label}</h3>
 				</div>
 			{:else}
 				<div class="timeline-day">
-					<div class="px-4 pt-3 pb-1">
+					<div class="px-4 pt-10 pb-1">
 						<p class="text-xs text-[var(--muted)]">{section.label}</p>
 					</div>
 					<div class="photo-grid">
-					{#each section.items as photo (photo.id)}
-						{@const isSel = selected.has(photo.id)}
-						<a
-							href={selectMode ? undefined : `/photos/${photo.id}`}
-							class="photo-tile group"
-							class:opacity-90={isSel}
-							onclick={(e) => onTileClick(e, photo as Photo)}
-							oncontextmenu={(e) => {
-								e.preventDefault();
-								onTileLongPress(photo as Photo);
-							}}
-						>
-							<AuthImage src={photoUrl(photo.id, true)} alt={photo.filename} class="w-full h-full object-cover" />
-							{#if selectMode}
-								<span
-									class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full border flex items-center justify-center
-										{isSel
-										? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
-										: 'border-[var(--accent)] bg-black/40 text-transparent'}"
-								>
-									{#if isSel}<Icon name="check" size={14} />{/if}
-								</span>
-							{:else if photo.is_favorite}
-								<span class="absolute top-1.5 left-1.5 text-[var(--accent)] drop-shadow">
-									<Icon name="heart-fill" size={16} />
-								</span>
-							{/if}
-							{#if isSel}
-								<span class="absolute inset-0 ring-1 ring-inset ring-[var(--accent)] pointer-events-none"></span>
-							{/if}
-						</a>
-					{/each}
+						{#each section.items as photo (photo.id)}
+							{@const isSel = selected.has(photo.id)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<a
+								href={selectMode ? undefined : `/photos/${photo.id}`}
+								class="photo-tile group"
+								class:opacity-90={isSel}
+								onclick={(e) => onTileClick(e, photo as Photo)}
+								oncontextmenu={(e) => {
+									e.preventDefault();
+									onTileLongPress(photo as Photo);
+								}}
+							>
+								<AuthImage
+									src={photoUrl(photo.id, true)}
+									alt={photo.filename}
+									class="w-full h-full object-cover"
+								/>
+								{#if selectMode}
+									<span
+										class="absolute top-1.5 right-1.5 w-6 h-6 rounded-[6px] border flex items-center justify-center
+											{isSel
+											? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)]'
+											: 'border-[var(--accent)] bg-black/40 text-transparent'}"
+									>
+										{#if isSel}<Icon name="check" size={14} />{/if}
+									</span>
+								{:else if photo.is_favorite}
+									<span class="absolute top-1.5 left-1.5 text-[var(--accent)] drop-shadow">
+										<Icon name="heart-fill" size={16} />
+									</span>
+								{/if}
+								{#if isSel}
+									<span class="absolute inset-0 ring-1 ring-inset ring-[var(--accent)] pointer-events-none"></span>
+								{/if}
+							</a>
+						{/each}
 					</div>
 				</div>
 			{/if}
@@ -267,8 +264,13 @@
 	{/if}
 
 	{#if dragOver}
-		<div class="fixed inset-0 z-[90] pointer-events-none flex items-center justify-center" style="background: var(--overlay)">
-			<div class="px-8 py-10 border-2 border-[var(--accent)] rounded-[8px] bg-[var(--raised)] text-[var(--text)] text-sm">
+		<div
+			class="fixed inset-0 z-[90] pointer-events-none flex items-center justify-center"
+			style="background: var(--overlay)"
+		>
+			<div
+				class="px-8 py-10 border border-[var(--accent)] rounded-[8px] bg-[var(--raised)] text-[var(--text)] text-sm"
+			>
 				Отпустите файлы для загрузки
 			</div>
 		</div>
