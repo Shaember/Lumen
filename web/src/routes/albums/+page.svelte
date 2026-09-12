@@ -59,7 +59,7 @@
 	}
 </script>
 
-<div class="relative w-full">
+<div class="relative w-full pt-14">
 	<div class="wall-toolbar">
 		<button type="button" onclick={() => (showNew = !showNew)} class="btn-primary">
 			<Icon name="plus" size={18} />
@@ -70,7 +70,7 @@
 	{#if showNew}
 		<form
 			onsubmit={handleCreate}
-			class="mx-3 mt-16 mb-4 p-4 bg-[var(--raised)] border border-[var(--hairline)] rounded-[8px] flex gap-2"
+			class="mx-3 mt-2 mb-4 p-4 bg-[var(--raised)] border border-[var(--hairline)] rounded-[8px] flex gap-2"
 		>
 			<input
 				type="text"
@@ -88,21 +88,21 @@
 	{/if}
 
 	{#if loading}
-		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-16">
+		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-2">
 			{#each Array(4) as _}
 				<div class="mosaic-cover skeleton-pulse" style="animation: none; opacity: 0.55"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="px-4 pt-20">
+		<div class="px-4 pt-6">
 			<ErrorState message={error} onretry={loadAlbums} />
 		</div>
 	{:else if albums.length === 0}
-		<div class="pt-20">
+		<div class="pt-6">
 			<EmptyState message="Альбомов пока нет" ctaLabel="Создать альбом" oncta={() => (showNew = true)} />
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-16 pb-6">
+		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-2 pb-6">
 			{#each albums as album}
 				<div class="block group relative">
 					<a href="/albums/{album.id}" class="block">
