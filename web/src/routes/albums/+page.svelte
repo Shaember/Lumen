@@ -15,6 +15,8 @@
 	let newName = $state('');
 	let confirmId = $state<number | null>(null);
 
+	const mosaicPositions = ['0% 0%', '100% 0%', '0% 100%', '100% 100%'];
+
 	onMount(async () => {
 		await loadAlbums();
 	});
@@ -57,14 +59,9 @@
 	}
 </script>
 
-<div class="max-w-7xl mx-auto px-4 py-6">
-	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-xl font-semibold text-[var(--text)]">Альбомы</h1>
-		<button
-			type="button"
-			onclick={() => (showNew = !showNew)}
-			class="h-10 px-4 bg-[var(--accent)] text-[var(--accent-ink)] rounded-[6px] text-sm font-medium flex items-center gap-2"
-		>
+<div class="relative w-full">
+	<div class="wall-toolbar">
+		<button type="button" onclick={() => (showNew = !showNew)} class="btn-primary">
 			<Icon name="plus" size={18} />
 			Новый
 		</button>
@@ -73,7 +70,7 @@
 	{#if showNew}
 		<form
 			onsubmit={handleCreate}
-			class="mb-6 p-4 bg-[var(--raised)] border border-[var(--hairline)] rounded-[8px] flex gap-2"
+			class="mx-3 mt-16 mb-4 p-4 bg-[var(--raised)] border border-[var(--hairline)] rounded-[8px] flex gap-2"
 		>
 			<input
 				type="text"
@@ -91,36 +88,43 @@
 	{/if}
 
 	{#if loading}
-		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-16">
 			{#each Array(4) as _}
-				<div class="aspect-square rounded-[8px] skeleton-pulse"></div>
+				<div class="mosaic-cover skeleton-pulse" style="animation: none; opacity: 0.55"></div>
 			{/each}
 		</div>
 	{:else if error}
-		<ErrorState message={error} onretry={loadAlbums} />
+		<div class="px-4 pt-20">
+			<ErrorState message={error} onretry={loadAlbums} />
+		</div>
 	{:else if albums.length === 0}
-		<EmptyState message="Альбомов пока нет" ctaLabel="Создать альбом" oncta={() => (showNew = true)} />
+		<div class="pt-20">
+			<EmptyState message="Альбомов пока нет" ctaLabel="Создать альбом" oncta={() => (showNew = true)} />
+		</div>
 	{:else}
-		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 px-3 pt-16 pb-6">
 			{#each albums as album}
 				<div class="block group relative">
 					<a href="/albums/{album.id}" class="block">
-						<div
-							class="aspect-square bg-[var(--raised)] rounded-[8px] overflow-hidden relative border border-[var(--hairline)]"
-						>
-							{#if album.cover_photo_id}
-								<AuthImage
-									src={photoUrl(album.cover_photo_id, true)}
-									alt={album.name}
-									class="w-full h-full object-cover"
-								/>
-							{:else}
-								<div class="w-full h-full flex items-center justify-center text-[var(--muted)]">
-									<Icon name="albums" size={32} />
-								</div>
-							{/if}
-						</div>
-						<div class="mt-2">
+						{#if album.cover_photo_id}
+							<div class="mosaic-cover">
+								{#each mosaicPositions as pos}
+									<div class="cell">
+										<AuthImage
+											src={photoUrl(album.cover_photo_id, true)}
+											alt={album.name}
+											class="w-full h-full object-cover"
+											style="object-position: {pos}"
+										/>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<div class="mosaic-cover empty-mosaic">
+								<Icon name="albums" size={28} />
+							</div>
+						{/if}
+						<div class="mt-2 px-0.5">
 							<p class="font-medium text-sm text-[var(--text)]">{album.name}</p>
 							<p class="text-xs text-[var(--muted)]">{album.photo_count} фото</p>
 						</div>
@@ -132,7 +136,7 @@
 							e.stopPropagation();
 							confirmId = album.id;
 						}}
-						class="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-[var(--text)] opacity-0 group-hover:opacity-100 transition-opacity duration-[160ms]"
+						class="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-[6px] bg-black/50 text-[var(--text)] opacity-0 group-hover:opacity-100 transition-opacity duration-[160ms]"
 						aria-label="Удалить альбом"
 					>
 						<Icon name="trash" size={16} />
