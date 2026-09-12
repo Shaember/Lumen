@@ -1,23 +1,21 @@
 import SwiftUI
 import Photos
 
-// MARK: - Albums
 struct AlbumsListView: View {
     @State private var albums: [Album] = []
     @State private var isLoading = true
     @State private var showingNewAlbum = false
     @State private var newAlbumName = ""
-    
+
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 LumenAtmosphere()
-                
                 if isLoading {
                     ProgressView().tint(Color.lumenAccent)
                 } else if albums.isEmpty {
@@ -33,7 +31,7 @@ struct AlbumsListView: View {
                             ForEach(albums) { album in
                                 NavigationLink(destination: AlbumDetailView(album: album)) {
                                     VStack(alignment: .leading, spacing: 8) {
-                                        AlbumMosaicCover(coverPhotoId: album.coverPhotoId, serverURL: serverURL)
+                                        AlbumMosaicCover(coverPhotoId: album.coverPhotoId)
                                         Text(album.name)
                                             .font(.subheadline.weight(.medium))
                                             .foregroundStyle(Color.lumenText)
@@ -52,6 +50,7 @@ struct AlbumsListView: View {
             }
             .navigationTitle("Альбомы")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingNewAlbum = true }) {
@@ -78,32 +77,19 @@ struct AlbumsListView: View {
             }
         }
     }
-    
-    private var serverURL: String {
-        UserDefaults.standard.string(forKey: "server_url") ?? ""
-    }
 }
 
-/// 2×2 mosaic cover — no empty gray SaaS card.
 struct AlbumMosaicCover: View {
     let coverPhotoId: Int64?
-    let serverURL: String
-    
+
     var body: some View {
         Group {
             if let coverId = coverPhotoId {
-                let url = URL(string: "\(serverURL)/api/v1/photos/\(coverId)/thumbnail")
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
                     ForEach(0..<4, id: \.self) { _ in
-                        AsyncImage(url: url) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                                .clipped()
-                        } placeholder: {
-                            Color.lumenRaised
-                        }
-                        .aspectRatio(1, contentMode: .fit)
+                        AuthImage(url: mediaURL(coverId, thumb: true), contentMode: .fill)
+                            .aspectRatio(1, contentMode: .fit)
+                            .clipped()
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -135,15 +121,15 @@ struct AlbumDetailView: View {
     @State private var showAdd = false
     @State private var library: [Photo] = []
     @State private var librarySelection: Set<Int64> = []
-    
+
     private let columns = [
         GridItem(.flexible(), spacing: 2),
         GridItem(.flexible(), spacing: 2),
         GridItem(.flexible(), spacing: 2)
     ]
-    
+
     private var photos: [Photo] { detail?.photos ?? album.photos ?? [] }
-    
+
     var body: some View {
         ZStack {
             LumenAtmosphere()
@@ -196,7 +182,6 @@ struct AlbumDetailView: View {
                     Image(systemName: "plus")
                         .foregroundStyle(Color.lumenAccent)
                 }
-                .accessibilityLabel("Добавить фото")
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -263,18 +248,18 @@ struct AlbumDetailView: View {
         }
         .task { await reload() }
     }
-    
+
     private func reload() async {
         detail = try? await APIClient.shared.getAlbum(id: album.id)
     }
-    
+
     private func loadLibrary() async {
         let all = (try? await APIClient.shared.listAllPhotos()) ?? []
-        let existing = Set(photos.map(\.id))
+        let existing = Set(photos.map(\ .id))
         library = all.filter { !existing.contains($0.id) }
         librarySelection.removeAll()
     }
-    
+
     private func addSelected() async {
         do {
             try await APIClient.shared.addPhotosToAlbum(id: album.id, photoIds: Array(librarySelection))
@@ -282,7 +267,7 @@ struct AlbumDetailView: View {
             await reload()
         } catch { print(error) }
     }
-    
+
     private func removeSelected() async {
         do {
             for id in selectedIds {
