@@ -255,7 +255,7 @@ struct AlbumDetailView: View {
 
     private func loadLibrary() async {
         let all = (try? await APIClient.shared.listAllPhotos()) ?? []
-        let existing = Set(photos.map(\ .id))
+        let existing = Set(photos.map(\.id))
         library = all.filter { !existing.contains($0.id) }
         librarySelection.removeAll()
     }
