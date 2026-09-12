@@ -21,7 +21,7 @@ struct TimelineView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.lumenBg.ignoresSafeArea()
+                LumenAtmosphere()
                 
                 if isLoading {
                     // Skeleton — no spinner in grid
@@ -152,7 +152,7 @@ struct TrashView: View {
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            LumenAtmosphere()
             if isLoading {
                 ProgressView().tint(Color.lumenAccent)
             } else if photos.isEmpty {
