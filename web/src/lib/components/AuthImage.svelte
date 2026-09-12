@@ -6,10 +6,11 @@
 		src: string;
 		alt?: string;
 		class?: string;
+		style?: string;
 		loading?: 'lazy' | 'eager';
 	}
 
-	let { src, alt = '', class: className = '', loading = 'lazy' }: Props = $props();
+	let { src, alt = '', class: className = '', style = '', loading = 'lazy' }: Props = $props();
 
 	let objectUrl = $state<string | null>(null);
 	let failed = $state(false);
@@ -51,13 +52,13 @@
 </script>
 
 {#if failed}
-	<button type="button" onclick={retry} class="auth-img-fail {className}" title="Повторить">
+	<button type="button" onclick={retry} class="auth-img-fail {className}" title="Повторить" {style}>
 		<span>не загрузилось</span>
 	</button>
 {:else if objectUrl}
-	<img src={objectUrl} {alt} {loading} class={className} />
+	<img src={objectUrl} {alt} {loading} class={className} {style} />
 {:else if loadingImg}
-	<div class="auth-img-loading skeleton-pulse {className}" aria-hidden="true"></div>
+	<div class="auth-img-loading skeleton-pulse {className}" aria-hidden="true" {style}></div>
 {/if}
 
 <style>
