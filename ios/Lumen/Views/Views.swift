@@ -3,7 +3,7 @@ import Photos
 
 // MARK: - Design tokens (DESIGN_SYSTEM.md)
 extension Color {
-    static let lumenBg = Color(red: 10/255, green: 10/255, blue: 10/255)           // #0A0A0A
+    static let lumenBg = Color(red: 16/255, green: 14/255, blue: 12/255)           // #100E0C (Designer canvas)
     static let lumenRaised = Color(red: 20/255, green: 20/255, blue: 20/255)       // #141414
     static let lumenRaised2 = Color(red: 26/255, green: 26/255, blue: 26/255)      // #1A1A1A
     static let lumenAccent = Color(red: 232/255, green: 228/255, blue: 217/255)    // #E8E4D9
@@ -26,7 +26,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            Color.lumenBg.ignoresSafeArea()
+            LumenAtmosphere()
             
             if auth.isLoggedIn {
                 MainTabView()
@@ -86,13 +86,8 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // Subtle canvas so frost panel glass has something to blur
-            LinearGradient(
-                colors: [Color.lumenBg, Color.lumenRaised.opacity(0.85), Color.lumenBg],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Atmospheric mesh so frost panel glass has something to blur
+            LumenAtmosphere()
             
             VStack {
                 Spacer()
@@ -223,5 +218,51 @@ struct LoginView: View {
                 }
             }
         }
+    }
+}
+
+
+// MARK: - Atmospheric canvas (Designer lock: #100E0C + washes + ~4% grain)
+struct LumenAtmosphere: View {
+    var body: some View {
+        ZStack {
+            Color.lumenBg
+            // Top-left warm wash ~80vmax equivalent
+            RadialGradient(
+                colors: [Color(red: 232/255, green: 228/255, blue: 217/255).opacity(0.09), .clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 520
+            )
+            // Bottom-right brown wash
+            RadialGradient(
+                colors: [Color(red: 90/255, green: 70/255, blue: 50/255).opacity(0.14), .clear],
+                center: .bottomTrailing,
+                startRadius: 0,
+                endRadius: 460
+            )
+            // Edge vignette
+            RadialGradient(
+                colors: [.clear, Color.black.opacity(0.55)],
+                center: .center,
+                startRadius: 120,
+                endRadius: 700
+            )
+            // Grain ~4% (Designer: do not raise to 8–15%)
+            Canvas { ctx, size in
+                for _ in 0..<900 {
+                    let x = CGFloat.random(in: 0..<size.width)
+                    let y = CGFloat.random(in: 0..<size.height)
+                    let r = CGFloat.random(in: 0.4...1.1)
+                    ctx.fill(
+                        Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
+                        with: .color(.white.opacity(0.045))
+                    )
+                }
+            }
+            .allowsHitTesting(false)
+            .blendMode(.overlay)
+        }
+        .ignoresSafeArea()
     }
 }
